@@ -118,7 +118,8 @@ class KostHuntStore extends ChangeNotifier {
     _bookings.insert(0, draft);
     notifyListeners();
 
-    final NotificationResult result = await _notification.sendBookingCreatedToAdmin(
+    final NotificationResult result =
+        await _notification.sendBookingCreatedToAdmin(
       booking: draft,
       kost: kost,
     );
