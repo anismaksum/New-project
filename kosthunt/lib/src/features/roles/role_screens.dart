@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../data/kost_seed.dart';
 import '../../models/booking_request.dart';
 import '../../models/kost.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 import '../../services/kosthunt_store.dart';
 import '../../theme/kosthunt_theme.dart';
 
@@ -16,7 +16,7 @@ class OwnerDashboardScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: store,
       builder: (BuildContext context, Widget? child) {
-        final int available = kostSeed.where(store.isAvailable).length;
+        final int available = store.kosts.where(store.isAvailable).length;
         final int pending = store.bookings
             .where((BookingRequest booking) => booking.status == 'Pending')
             .length;
@@ -27,7 +27,10 @@ class OwnerDashboardScreen extends StatelessWidget {
           children: <Widget>[
             _MetricGrid(
               metrics: <_MetricData>[
-                const _MetricData('12', 'Listing Aktif'),
+                _MetricData(
+                  store.kosts.length.toString().padLeft(2, '0'),
+                  'Listing Aktif',
+                ),
                 _MetricData(available.toString().padLeft(2, '0'), 'Tersedia'),
                 _MetricData(pending.toString().padLeft(2, '0'), 'Pending'),
               ],
@@ -50,7 +53,7 @@ class OwnerDashboardScreen extends StatelessWidget {
               ),
             ),
             const _SectionTitle(title: 'Listing Milikmu'),
-            ...kostSeed.take(3).map((Kost kost) {
+            ...store.kosts.take(3).map((Kost kost) {
               return _ListingWorkCard(
                 kost: kost,
                 status: store.isAvailable(kost) ? 'Tersedia' : 'Penuh',
@@ -58,8 +61,8 @@ class OwnerDashboardScreen extends StatelessWidget {
                 actionLabel: store.isAvailable(kost)
                     ? 'Tandai Penuh'
                     : 'Tandai Tersedia',
-                onAction: () {
-                  store.toggleAvailability(kost);
+                onAction: () async {
+                  await store.toggleAvailability(kost);
                   _showSnack(context, 'Status ${kost.name} diperbarui.');
                 },
               );
@@ -97,7 +100,7 @@ class OwnerListingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            ...kostSeed.map((Kost kost) {
+            ...store.kosts.map((Kost kost) {
               return _ListingWorkCard(
                 kost: kost,
                 status: store.isAvailable(kost) ? 'Tersedia' : 'Penuh',
@@ -105,8 +108,8 @@ class OwnerListingsScreen extends StatelessWidget {
                 actionLabel: store.isAvailable(kost)
                     ? 'Tandai Penuh'
                     : 'Tandai Tersedia',
-                onAction: () {
-                  store.toggleAvailability(kost);
+                onAction: () async {
+                  await store.toggleAvailability(kost);
                   _showSnack(context, 'Status kamar berhasil diubah.');
                 },
               );
@@ -270,13 +273,16 @@ class OwnerProfileScreen extends StatelessWidget {
           primaryIcon: Icons.chat_rounded,
           onPrimary: () =>
               Navigator.pushNamed(context, AppRoutes.ownerBookings),
-          secondaryLabel: 'Ke Customer',
-          secondaryIcon: Icons.person_search_rounded,
-          onSecondary: () => Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.customerHome,
-            (Route<dynamic> route) => false,
-          ),
+          secondaryLabel: 'Ganti Akun',
+          secondaryIcon: Icons.switch_account_rounded,
+          onSecondary: () {
+            AuthService.instance.logout();
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.login,
+              (Route<dynamic> route) => false,
+            );
+          },
         ),
       ],
     );
@@ -292,7 +298,7 @@ class AdminDashboardScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: store,
       builder: (BuildContext context, Widget? child) {
-        final int verified = kostSeed.where(store.isVerified).length;
+        final int verified = store.kosts.where(store.isVerified).length;
         return _RoleScaffold(
           title: 'Admin Console',
           subtitle: 'Moderasi listing, owner, customer, dan kualitas platform.',
@@ -301,7 +307,7 @@ class AdminDashboardScreen extends StatelessWidget {
             _MetricGrid(
               metrics: <_MetricData>[
                 _MetricData(
-                    kostSeed.length.toString().padLeft(2, '0'), 'Listing'),
+                    store.kosts.length.toString().padLeft(2, '0'), 'Listing'),
                 _MetricData(verified.toString().padLeft(2, '0'), 'Verified'),
                 const _MetricData('03', 'Laporan'),
               ],
@@ -343,15 +349,15 @@ class AdminListingsScreen extends StatelessWidget {
           title: 'Moderasi Listing',
           subtitle: 'Aktifkan badge terverifikasi setelah listing valid.',
           role: _Role.admin,
-          children: kostSeed.map((Kost kost) {
+          children: store.kosts.map((Kost kost) {
             final bool verified = store.isVerified(kost);
             return _ListingWorkCard(
               kost: kost,
               status: store.isAvailable(kost) ? 'Tersedia' : 'Penuh',
               badge: verified ? 'Terverifikasi' : 'Belum verified',
               actionLabel: verified ? 'Cabut Verifikasi' : 'Verifikasi',
-              onAction: () {
-                store.toggleVerified(kost);
+              onAction: () async {
+                await store.toggleVerified(kost);
                 _showSnack(
                     context, 'Status verifikasi ${kost.name} diperbarui.');
               },
@@ -372,7 +378,7 @@ class AdminOwnersScreen extends StatelessWidget {
       title: 'Owner',
       subtitle: 'Kelola akun pemilik dan kualitas listing.',
       role: _Role.admin,
-      children: const <Widget>[
+      children: <Widget>[
         _SimpleWorkCard(
           icon: Icons.badge_outlined,
           title: 'Ardi Properti',
@@ -399,7 +405,7 @@ class AdminUsersScreen extends StatelessWidget {
       title: 'Users',
       subtitle: 'Pantau customer aktif dan aktivitas booking.',
       role: _Role.admin,
-      children: const <Widget>[
+      children: <Widget>[
         _SimpleWorkCard(
           icon: Icons.person_outline_rounded,
           title: 'Nadia Putri',
@@ -422,25 +428,35 @@ class AdminReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _RoleScaffold(
-      title: 'Reports',
-      subtitle: 'Tinjau laporan listing dan percakapan yang bermasalah.',
-      role: _Role.admin,
-      children: <Widget>[
-        _SimpleWorkCard(
-          icon: Icons.report_outlined,
-          title: 'Foto kurang representatif',
-          subtitle:
-              '${kostSeed[2].name} - butuh foto kamar mandi dan area parkir',
-          badge: 'Prioritas',
-        ),
-        _SimpleWorkCard(
-          icon: Icons.report_outlined,
-          title: 'Harga tidak konsisten',
-          subtitle: '${kostSeed[3].name} - harga chat berbeda dari listing',
-          badge: 'Review',
-        ),
-      ],
+    final KostHuntStore store = KostHuntStore.instance;
+    return AnimatedBuilder(
+      animation: store,
+      builder: (BuildContext context, Widget? child) {
+        final String firstListing =
+            store.kosts.length > 2 ? store.kosts[2].name : 'Listing customer';
+        final String secondListing =
+            store.kosts.length > 3 ? store.kosts[3].name : 'Listing owner';
+        return _RoleScaffold(
+          title: 'Reports',
+          subtitle: 'Tinjau laporan listing dan percakapan yang bermasalah.',
+          role: _Role.admin,
+          children: <Widget>[
+            _SimpleWorkCard(
+              icon: Icons.report_outlined,
+              title: 'Foto kurang representatif',
+              subtitle:
+                  '$firstListing - butuh foto kamar mandi dan area parkir',
+              badge: 'Prioritas',
+            ),
+            _SimpleWorkCard(
+              icon: Icons.report_outlined,
+              title: 'Harga tidak konsisten',
+              subtitle: '$secondListing - harga chat berbeda dari listing',
+              badge: 'Review',
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -454,7 +470,7 @@ class AdminSettingsScreen extends StatelessWidget {
       title: 'Settings',
       subtitle: 'Konfigurasi platform, kategori, dan template notifikasi.',
       role: _Role.admin,
-      children: const <Widget>[
+      children: <Widget>[
         _SimpleWorkCard(
           icon: Icons.message_outlined,
           title: 'Template WhatsApp',
@@ -566,7 +582,7 @@ class _RoleHeader extends StatelessWidget {
               Text(title, style: KostText.title),
               const SizedBox(height: 3),
               Text(
-                subtitle,
+                '${AuthService.instance.currentUser?.name ?? title} - $subtitle',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: KostText.muted,
@@ -576,12 +592,15 @@ class _RoleHeader extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         _HeaderButton(
-          icon: Icons.home_work_outlined,
-          onTap: () => Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.customerHome,
-            (Route<dynamic> route) => false,
-          ),
+          icon: Icons.logout_rounded,
+          onTap: () {
+            AuthService.instance.logout();
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.login,
+              (Route<dynamic> route) => false,
+            );
+          },
         ),
       ],
     );

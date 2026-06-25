@@ -1,4 +1,5 @@
 class AppRoutes {
+  static const String login = '/login';
   static const String customerHome = '/customer/home';
   static const String ownerDashboard = '/owner/dashboard';
   static const String ownerListings = '/owner/listings';

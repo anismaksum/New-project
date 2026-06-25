@@ -1,67 +1,49 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import '../config/app_config.dart';
+import '../data/booking_seed.dart';
 import '../data/kost_seed.dart';
+import '../data/support_message_seed.dart';
 import '../models/booking_request.dart';
 import '../models/kost.dart';
 import '../models/support_message.dart';
+import '../repositories/kosthunt_repository.dart';
+import '../repositories/local_kosthunt_repository.dart';
+import '../repositories/supabase_kosthunt_repository.dart';
 import 'notification_service.dart';
 
 class KostHuntStore extends ChangeNotifier {
-  KostHuntStore._()
-      : _availability = <String, bool>{
-          for (final Kost kost in kostSeed) kost.id: kost.isAvailable,
-        },
-        _verified = <String, bool>{
-          for (final Kost kost in kostSeed) kost.id: kost.isVerified,
-        },
-        _bookings = <BookingRequest>[
-          BookingRequest(
-            id: 'BK-1002',
-            kost: kostSeed[1],
-            customerName: 'Nadia Putri',
-            customerPhone: '628121110002',
-            scheduleLabel: 'Masuk 15 Jun 2026',
-            status: 'Diterima',
-            notificationStatus: 'Terkirim ke WhatsApp customer',
-            notificationReference: 'WA-BK-1002',
-            notificationMessage:
-                'Update booking Cendana Eksklusif: status kamu sekarang Diterima.',
-          ),
-          BookingRequest(
-            id: 'BK-1001',
-            kost: kostSeed[0],
-            customerName: 'Raka Pratama',
-            customerPhone: '628121110001',
-            scheduleLabel: 'Survey 08 Jun 2026',
-            status: 'Pending',
-            notificationStatus: 'Terkirim ke WhatsApp admin',
-            notificationReference: 'WA-BK-1001',
-            notificationMessage:
-                'Ada booking baru untuk Kost Melati Residence dari Raka Pratama.',
-          ),
-        ],
-        _supportMessages = <SupportMessage>[
-          const SupportMessage(
-            id: 'MSG-1000',
-            text:
-                'Halo, saya Admin KostHunt. Silakan tulis kebutuhan kost atau kendala booking kamu di sini.',
-            timeLabel: 'Admin',
-            sentByCustomer: false,
-            deliveryStatus: 'Siap membantu',
-            reference: '-',
-          ),
-        ];
+  KostHuntStore._({KostHuntRepository? repository})
+      : _repository = repository ?? _defaultRepository() {
+    _loadInitialData();
+  }
 
   static final KostHuntStore instance = KostHuntStore._();
 
+  static KostHuntRepository _defaultRepository() {
+    if (!AppConfig.hasSupabaseConfig) {
+      return LocalKostHuntRepository();
+    }
+    return const SupabaseKostHuntRepository(
+      url: AppConfig.supabaseUrl,
+      publishableKey: AppConfig.supabasePublishableKey,
+    );
+  }
+
+  final KostHuntRepository _repository;
   final NotificationService _notification = const NotificationService();
   final Set<String> _favorites = <String>{};
-  final Map<String, bool> _availability;
-  final Map<String, bool> _verified;
-  final List<BookingRequest> _bookings;
-  final List<SupportMessage> _supportMessages;
+  final List<Kost> _kosts = <Kost>[...kostSeed];
+  final List<BookingRequest> _bookings = <BookingRequest>[...bookingSeed];
+  final List<SupportMessage> _supportMessages = <SupportMessage>[
+    ...supportMessageSeed,
+  ];
   int _bookingCounter = 1003;
   int _messageCounter = 1001;
+
+  List<Kost> get kosts => List<Kost>.unmodifiable(_kosts);
 
   List<BookingRequest> get bookings =>
       List<BookingRequest>.unmodifiable(_bookings);
@@ -70,7 +52,7 @@ class KostHuntStore extends ChangeNotifier {
       List<SupportMessage>.unmodifiable(_supportMessages);
 
   List<Kost> get favorites {
-    return kostSeed.where((Kost kost) => _favorites.contains(kost.id)).toList();
+    return _kosts.where((Kost kost) => _favorites.contains(kost.id)).toList();
   }
 
   bool isFavorite(Kost kost) {
@@ -78,11 +60,11 @@ class KostHuntStore extends ChangeNotifier {
   }
 
   bool isAvailable(Kost kost) {
-    return _availability[kost.id] ?? kost.isAvailable;
+    return _kostById(kost.id)?.isAvailable ?? kost.isAvailable;
   }
 
   bool isVerified(Kost kost) {
-    return _verified[kost.id] ?? kost.isVerified;
+    return _kostById(kost.id)?.isVerified ?? kost.isVerified;
   }
 
   void toggleFavorite(Kost kost) {
@@ -92,14 +74,18 @@ class KostHuntStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleAvailability(Kost kost) {
-    _availability[kost.id] = !isAvailable(kost);
+  Future<void> toggleAvailability(Kost kost) async {
+    final bool next = !isAvailable(kost);
+    _replaceKost(kost.copyWith(isAvailable: next));
     notifyListeners();
+    await _persist(_repository.updateKostAvailability(kost.id, next));
   }
 
-  void toggleVerified(Kost kost) {
-    _verified[kost.id] = !isVerified(kost);
+  Future<void> toggleVerified(Kost kost) async {
+    final bool next = !isVerified(kost);
+    _replaceKost(kost.copyWith(isVerified: next));
     notifyListeners();
+    await _persist(_repository.updateKostVerification(kost.id, next));
   }
 
   Future<BookingRequest> createBooking(Kost kost) async {
@@ -117,6 +103,7 @@ class KostHuntStore extends ChangeNotifier {
     );
     _bookings.insert(0, draft);
     notifyListeners();
+    await _persist(_repository.saveBooking(draft));
 
     final NotificationResult result =
         await _notification.sendBookingCreatedToAdmin(
@@ -130,6 +117,15 @@ class KostHuntStore extends ChangeNotifier {
       notificationMessage: result.message,
     );
     _replaceBooking(sent);
+    await _persist(_repository.saveNotificationLog(
+      relatedType: 'booking',
+      relatedId: sent.id,
+      eventType: 'booking-created-admin',
+      targetPhone: 'admin',
+      success: result.success,
+      reference: result.reference,
+      message: result.message,
+    ));
     return sent;
   }
 
@@ -153,6 +149,15 @@ class KostHuntStore extends ChangeNotifier {
         notificationMessage: result.message,
       ),
     );
+    await _persist(_repository.saveNotificationLog(
+      relatedType: 'booking',
+      relatedId: booking.id,
+      eventType: 'booking-status-customer',
+      targetPhone: booking.customerPhone,
+      success: result.success,
+      reference: result.reference,
+      message: result.message,
+    ));
   }
 
   Future<SupportMessage> sendSupportMessage(String text) async {
@@ -169,6 +174,10 @@ class KostHuntStore extends ChangeNotifier {
       deliveryStatus: 'Mengirim ke WhatsApp admin',
       reference: '-',
     );
+    await _persist(_repository.saveSupportMessage(
+      draft,
+      bookingId: _bookings.isEmpty ? null : _bookings.first.id,
+    ));
     _supportMessages.add(draft);
     notifyListeners();
 
@@ -186,7 +195,36 @@ class KostHuntStore extends ChangeNotifier {
       reference: result.reference,
     );
     _replaceSupportMessage(sent);
+    await _persist(_repository.saveNotificationLog(
+      relatedType: 'support_message',
+      relatedId: sent.id,
+      eventType: 'customer-support-admin',
+      targetPhone: 'admin',
+      success: result.success,
+      reference: result.reference,
+      message: sent.deliveryStatus,
+    ));
     return sent;
+  }
+
+  Future<void> _loadInitialData() async {
+    final List<Kost> loadedKosts = await _repository.loadKosts();
+    final List<BookingRequest> loadedBookings =
+        await _repository.loadBookings();
+    final List<SupportMessage> loadedMessages =
+        await _repository.loadSupportMessages();
+
+    _kosts
+      ..clear()
+      ..addAll(loadedKosts);
+    _bookings
+      ..clear()
+      ..addAll(loadedBookings);
+    _supportMessages
+      ..clear()
+      ..addAll(loadedMessages);
+    _syncCounters();
+    notifyListeners();
   }
 
   void _replaceBooking(BookingRequest booking) {
@@ -197,6 +235,7 @@ class KostHuntStore extends ChangeNotifier {
       return;
     }
     _bookings[index] = booking;
+    unawaited(_persist(_repository.updateBooking(booking)));
     notifyListeners();
   }
 
@@ -208,7 +247,53 @@ class KostHuntStore extends ChangeNotifier {
       return;
     }
     _supportMessages[index] = message;
+    unawaited(_persist(_repository.updateSupportMessage(message)));
     notifyListeners();
+  }
+
+  Kost? _kostById(String id) {
+    for (final Kost kost in _kosts) {
+      if (kost.id == id) {
+        return kost;
+      }
+    }
+    return null;
+  }
+
+  void _replaceKost(Kost updated) {
+    final int index = _kosts.indexWhere((Kost item) => item.id == updated.id);
+    if (index == -1) {
+      return;
+    }
+    _kosts[index] = updated;
+  }
+
+  void _syncCounters() {
+    for (final BookingRequest booking in _bookings) {
+      _bookingCounter = _nextCounter(_bookingCounter, booking.id, 'BK-');
+    }
+    for (final SupportMessage message in _supportMessages) {
+      _messageCounter = _nextCounter(_messageCounter, message.id, 'MSG-');
+    }
+  }
+
+  int _nextCounter(int current, String id, String prefix) {
+    if (!id.startsWith(prefix)) {
+      return current;
+    }
+    final int? parsed = int.tryParse(id.substring(prefix.length));
+    if (parsed == null) {
+      return current;
+    }
+    return parsed >= current ? parsed + 1 : current;
+  }
+
+  Future<void> _persist(Future<void> operation) async {
+    try {
+      await operation;
+    } on Object {
+      // Local UI state remains the source of truth when remote persistence fails.
+    }
   }
 
   String _clockLabel(DateTime value) {

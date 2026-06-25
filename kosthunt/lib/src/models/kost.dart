@@ -30,4 +30,67 @@ class Kost {
   final String ownerName;
   final String ownerPhone;
   final String description;
+
+  Kost copyWith({
+    bool? isVerified,
+    bool? isAvailable,
+  }) {
+    return Kost(
+      id: id,
+      name: name,
+      city: city,
+      address: address,
+      price: price,
+      distanceKm: distanceKm,
+      imageUrl: imageUrl,
+      facilities: facilities,
+      isVerified: isVerified ?? this.isVerified,
+      isAvailable: isAvailable ?? this.isAvailable,
+      category: category,
+      ownerName: ownerName,
+      ownerPhone: ownerPhone,
+      description: description,
+    );
+  }
+
+  Map<String, Object?> toDatabase() {
+    return <String, Object?>{
+      'id': id,
+      'name': name,
+      'city': city,
+      'address': address,
+      'price': price,
+      'distance_km': distanceKm,
+      'image_url': imageUrl,
+      'facilities': facilities,
+      'is_verified': isVerified,
+      'is_available': isAvailable,
+      'category': category,
+      'owner_name': ownerName,
+      'owner_phone': ownerPhone,
+      'description': description,
+    };
+  }
+
+  static Kost fromDatabase(Map<String, Object?> data) {
+    final Object? facilities = data['facilities'];
+    return Kost(
+      id: data['id'] as String,
+      name: data['name'] as String,
+      city: data['city'] as String,
+      address: data['address'] as String,
+      price: data['price'] as int,
+      distanceKm: (data['distance_km'] as num).toDouble(),
+      imageUrl: data['image_url'] as String,
+      facilities: facilities is List<dynamic>
+          ? facilities.map((dynamic item) => item.toString()).toList()
+          : const <String>[],
+      isVerified: data['is_verified'] as bool,
+      isAvailable: data['is_available'] as bool,
+      category: data['category'] as String,
+      ownerName: data['owner_name'] as String,
+      ownerPhone: data['owner_phone'] as String,
+      description: data['description'] as String,
+    );
+  }
 }

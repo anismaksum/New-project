@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'features/auth/login_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/roles/role_screens.dart';
+import 'models/app_user.dart';
 import 'routes/app_routes.dart';
+import 'services/auth_service.dart';
 import 'theme/kosthunt_theme.dart';
 
 class KostHuntApp extends StatelessWidget {
@@ -14,33 +17,89 @@ class KostHuntApp extends StatelessWidget {
       title: 'KostHunt',
       debugShowCheckedModeBanner: false,
       theme: KostHuntTheme.light,
-      initialRoute: AppRoutes.customerHome,
+      initialRoute: AppRoutes.login,
       routes: <String, WidgetBuilder>{
+        AppRoutes.login: (BuildContext context) => const LoginScreen(),
         AppRoutes.customerHome: (BuildContext context) =>
-            const KostHuntHomeScreen(),
+            const _RoleGuard(
+              role: UserRole.customer,
+              child: KostHuntHomeScreen(),
+            ),
         AppRoutes.ownerDashboard: (BuildContext context) =>
-            const OwnerDashboardScreen(),
+            const _RoleGuard(
+              role: UserRole.owner,
+              child: OwnerDashboardScreen(),
+            ),
         AppRoutes.ownerListings: (BuildContext context) =>
-            const OwnerListingsScreen(),
+            const _RoleGuard(
+              role: UserRole.owner,
+              child: OwnerListingsScreen(),
+            ),
         AppRoutes.ownerListingForm: (BuildContext context) =>
-            const OwnerListingFormScreen(),
+            const _RoleGuard(
+              role: UserRole.owner,
+              child: OwnerListingFormScreen(),
+            ),
         AppRoutes.ownerBookings: (BuildContext context) =>
-            const OwnerBookingsScreen(),
+            const _RoleGuard(
+              role: UserRole.owner,
+              child: OwnerBookingsScreen(),
+            ),
         AppRoutes.ownerProfile: (BuildContext context) =>
-            const OwnerProfileScreen(),
+            const _RoleGuard(
+              role: UserRole.owner,
+              child: OwnerProfileScreen(),
+            ),
         AppRoutes.adminDashboard: (BuildContext context) =>
-            const AdminDashboardScreen(),
+            const _RoleGuard(
+              role: UserRole.admin,
+              child: AdminDashboardScreen(),
+            ),
         AppRoutes.adminListings: (BuildContext context) =>
-            const AdminListingsScreen(),
+            const _RoleGuard(
+              role: UserRole.admin,
+              child: AdminListingsScreen(),
+            ),
         AppRoutes.adminOwners: (BuildContext context) =>
-            const AdminOwnersScreen(),
+            const _RoleGuard(
+              role: UserRole.admin,
+              child: AdminOwnersScreen(),
+            ),
         AppRoutes.adminUsers: (BuildContext context) =>
-            const AdminUsersScreen(),
+            const _RoleGuard(
+              role: UserRole.admin,
+              child: AdminUsersScreen(),
+            ),
         AppRoutes.adminReports: (BuildContext context) =>
-            const AdminReportsScreen(),
+            const _RoleGuard(
+              role: UserRole.admin,
+              child: AdminReportsScreen(),
+            ),
         AppRoutes.adminSettings: (BuildContext context) =>
-            const AdminSettingsScreen(),
+            const _RoleGuard(
+              role: UserRole.admin,
+              child: AdminSettingsScreen(),
+            ),
       },
     );
+  }
+}
+
+class _RoleGuard extends StatelessWidget {
+  const _RoleGuard({
+    required this.role,
+    required this.child,
+  });
+
+  final UserRole role;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (AuthService.instance.canAccess(role)) {
+      return child;
+    }
+
+    return const LoginScreen();
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../data/kost_seed.dart';
 import '../../models/booking_request.dart';
 import '../../models/kost.dart';
 import '../../models/support_message.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 import '../../services/kosthunt_store.dart';
 import '../../theme/kosthunt_theme.dart';
 
@@ -34,7 +34,7 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
   ];
 
   List<Kost> get _visibleKosts {
-    return kostSeed.where((Kost kost) {
+    return _store.kosts.where((Kost kost) {
       final String search = _query.trim().toLowerCase();
       final bool matchesQuery = search.isEmpty ||
           kost.name.toLowerCase().contains(search) ||
@@ -263,6 +263,7 @@ class _HomePage extends StatelessWidget {
         const SliverToBoxAdapter(child: _TopBar()),
         SliverToBoxAdapter(
           child: _HeroShowcase(
+            featuredKosts: visibleKosts,
             activeIndex: heroIndex,
             onChanged: onHeroChanged,
             onOpenDetail: onOpenDetail,
@@ -348,14 +349,15 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('KostHunt', style: KostText.title),
-                SizedBox(height: 3),
+                const Text('KostHunt', style: KostText.title),
+                const SizedBox(height: 3),
                 Text(
-                  'Hunian terkurasi dekat kampus dan kantor.',
+                  AuthService.instance.currentUser?.name ??
+                      'Hunian terkurasi dekat kampus dan kantor.',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: KostText.muted,
@@ -365,6 +367,18 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           _IconBox(icon: Icons.notifications_none_rounded, onTap: () {}),
+          const SizedBox(width: 8),
+          _IconBox(
+            icon: Icons.logout_rounded,
+            onTap: () {
+              AuthService.instance.logout();
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRoutes.login,
+                (Route<dynamic> route) => false,
+              );
+            },
+          ),
         ],
       ),
     );
@@ -373,12 +387,14 @@ class _TopBar extends StatelessWidget {
 
 class _HeroShowcase extends StatelessWidget {
   const _HeroShowcase({
+    required this.featuredKosts,
     required this.activeIndex,
     required this.onChanged,
     required this.onOpenDetail,
     required this.onBook,
   });
 
+  final List<Kost> featuredKosts;
   final int activeIndex;
   final ValueChanged<int> onChanged;
   final ValueChanged<Kost> onOpenDetail;
@@ -386,7 +402,10 @@ class _HeroShowcase extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Kost> featured = kostSeed.take(3).toList();
+    final List<Kost> featured = featuredKosts.take(3).toList();
+    if (featured.isEmpty) {
+      return const SizedBox(height: 16);
+    }
     return SizedBox(
       height: 420,
       child: PageView.builder(
@@ -803,7 +822,25 @@ class _OwnerDashboardPreview extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.ownerDashboard);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Sign in memakai akun Supabase dengan role owner untuk membuka dashboard owner.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      action: SnackBarAction(
+                        label: 'Login',
+                        onPressed: () {
+                          AuthService.instance.logout();
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.login,
+                            (Route<dynamic> route) => false,
+                          );
+                        },
+                      ),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.add_home_work_rounded, size: 19),
                 label: const Text('Buka Dashboard'),
@@ -1269,6 +1306,9 @@ class _ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String name =
+        AuthService.instance.currentUser?.name ?? 'Calon Penghuni';
+    final String phone = AuthService.instance.currentUser?.phone ?? '-';
     return CustomScrollView(
       slivers: <Widget>[
         const SliverToBoxAdapter(child: _TopBar()),
@@ -1298,14 +1338,14 @@ class _ProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('Calon Penghuni', style: KostText.title),
-                              SizedBox(height: 5),
+                              Text(name, style: KostText.title),
+                              const SizedBox(height: 5),
                               Text(
-                                'Preferensi: dekat kampus, WiFi, budget hemat.',
+                                'Customer - $phone',
                                 style: KostText.muted,
                               ),
                             ],
@@ -1332,9 +1372,9 @@ class _ProfilePage extends StatelessWidget {
                   subtitle:
                       'Kelola listing dan booking masuk dari calon penghuni.',
                   label: 'Buka Owner',
-                  onTap: () => Navigator.pushNamed(
+                  onTap: () => _showSwitchRoleSnack(
                     context,
-                    AppRoutes.ownerDashboard,
+                    'Sign in memakai akun Supabase dengan role owner untuk membuka dashboard owner.',
                   ),
                 ),
                 _RoleAccessCard(
@@ -1343,9 +1383,9 @@ class _ProfilePage extends StatelessWidget {
                   subtitle:
                       'Moderasi listing, owner, user, dan laporan platform.',
                   label: 'Buka Admin',
-                  onTap: () => Navigator.pushNamed(
+                  onTap: () => _showSwitchRoleSnack(
                     context,
-                    AppRoutes.adminDashboard,
+                    'Sign in memakai akun Supabase dengan role admin untuk membuka admin console.',
                   ),
                 ),
               ],
@@ -1353,6 +1393,26 @@ class _ProfilePage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showSwitchRoleSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Login',
+          onPressed: () {
+            AuthService.instance.logout();
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.login,
+              (Route<dynamic> route) => false,
+            );
+          },
+        ),
+      ),
     );
   }
 }
