@@ -12,6 +12,7 @@ import '../models/support_message.dart';
 import '../repositories/kosthunt_repository.dart';
 import '../repositories/local_kosthunt_repository.dart';
 import '../repositories/supabase_kosthunt_repository.dart';
+import 'auth_service.dart';
 import 'notification_service.dart';
 
 class KostHuntStore extends ChangeNotifier {
@@ -40,6 +41,7 @@ class KostHuntStore extends ChangeNotifier {
   final List<SupportMessage> _supportMessages = <SupportMessage>[
     ...supportMessageSeed,
   ];
+  int _kostCounter = 1001;
   int _bookingCounter = 1003;
   int _messageCounter = 1001;
 
@@ -72,6 +74,37 @@ class KostHuntStore extends ChangeNotifier {
       _favorites.remove(kost.id);
     }
     notifyListeners();
+  }
+
+  Future<Kost> createKostDraft({
+    required String name,
+    required int price,
+    required String address,
+    required String category,
+  }) async {
+    final String city = _cityFromAddress(address);
+    final Kost draft = Kost(
+      id: 'owner-kost-${_kostCounter++}',
+      name: name.trim(),
+      city: city,
+      address: address.trim(),
+      price: price,
+      distanceKm: 1.0,
+      imageUrl:
+          'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
+      facilities: const <String>['WiFi', 'Parkir'],
+      isVerified: false,
+      isAvailable: true,
+      category: category,
+      ownerName: AuthService.instance.currentUser?.name ?? 'Owner Kost',
+      ownerPhone: AuthService.instance.currentUser?.phone ?? '628122220002',
+      description:
+          'Draft listing baru dari owner. Lengkapi foto, fasilitas, dan detail kamar sebelum diverifikasi admin.',
+    );
+    _kosts.insert(0, draft);
+    notifyListeners();
+    await _persist(_repository.saveKost(draft));
+    return draft;
   }
 
   Future<void> toggleAvailability(Kost kost) async {
@@ -275,6 +308,9 @@ class KostHuntStore extends ChangeNotifier {
     for (final SupportMessage message in _supportMessages) {
       _messageCounter = _nextCounter(_messageCounter, message.id, 'MSG-');
     }
+    for (final Kost kost in _kosts) {
+      _kostCounter = _nextCounter(_kostCounter, kost.id, 'owner-kost-');
+    }
   }
 
   int _nextCounter(int current, String id, String prefix) {
@@ -300,5 +336,17 @@ class KostHuntStore extends ChangeNotifier {
     final String hour = value.hour.toString().padLeft(2, '0');
     final String minute = value.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  String _cityFromAddress(String address) {
+    final List<String> parts = address
+        .split(',')
+        .map((String part) => part.trim())
+        .where((String part) => part.isNotEmpty)
+        .toList();
+    if (parts.length > 1) {
+      return parts.last;
+    }
+    return 'Kota belum diisi';
   }
 }

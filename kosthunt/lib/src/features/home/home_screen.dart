@@ -216,16 +216,28 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
   }
 
   Future<void> _sendSupportMessage(String message) async {
-    final SupportMessage sent = await _store.sendSupportMessage(message);
-    if (!mounted) {
-      return;
+    try {
+      final SupportMessage sent = await _store.sendSupportMessage(message);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(sent.deliveryStatus),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on ArgumentError catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message.toString()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(sent.deliveryStatus),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 }
 

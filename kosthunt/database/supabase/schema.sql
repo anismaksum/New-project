@@ -181,6 +181,12 @@ to anon
 using (true)
 with check (true);
 
+drop policy if exists "Demo can create kost drafts" on public.kosts;
+create policy "Demo can create kost drafts"
+on public.kosts for insert
+to anon
+with check (true);
+
 drop policy if exists "Demo can read bookings" on public.bookings;
 create policy "Demo can read bookings"
 on public.bookings for select

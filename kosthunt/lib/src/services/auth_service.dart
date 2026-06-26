@@ -47,9 +47,7 @@ class AuthService extends ChangeNotifier {
     }
 
     if (!AppConfig.hasSupabaseConfig) {
-      return const AuthResult.failure(
-        'Supabase belum dikonfigurasi. Jalankan lewat run_flutter_supabase.ps1.',
-      );
+      return _signInLocalDemo(normalizedEmail, password);
     }
 
     try {
@@ -120,6 +118,59 @@ class AuthService extends ChangeNotifier {
     _currentUser = null;
     _accessToken = null;
     notifyListeners();
+  }
+
+  AuthResult _signInLocalDemo(String email, String password) {
+    if (password != 'KostHunt212') {
+      return const AuthResult.failure('Email atau password tidak sesuai.');
+    }
+
+    final Map<String, AppUser> users = <String, AppUser>{
+      'customer@kosthunt.test': const AppUser(
+        name: 'Nadia Putri',
+        email: 'customer@kosthunt.test',
+        phone: '628129990001',
+        role: UserRole.customer,
+      ),
+      'owner@kosthunt.test': const AppUser(
+        name: 'Ardi Properti',
+        email: 'owner@kosthunt.test',
+        phone: '628122220002',
+        role: UserRole.owner,
+      ),
+      'admin@kosthunt.test': const AppUser(
+        name: 'Admin KostHunt',
+        email: 'admin@kosthunt.test',
+        phone: '628122220000',
+        role: UserRole.admin,
+      ),
+      'customer@kosthunt.com': const AppUser(
+        name: 'Nadia Putri',
+        email: 'customer@kosthunt.com',
+        phone: '628129990001',
+        role: UserRole.customer,
+      ),
+      'owner@kosthunt.com': const AppUser(
+        name: 'Ardi Properti',
+        email: 'owner@kosthunt.com',
+        phone: '628122220002',
+        role: UserRole.owner,
+      ),
+      'admin@kosthunt.com': const AppUser(
+        name: 'Admin KostHunt',
+        email: 'admin@kosthunt.com',
+        phone: '628122220000',
+        role: UserRole.admin,
+      ),
+    };
+    final AppUser? user = users[email];
+    if (user == null) {
+      return const AuthResult.failure('Email atau password tidak sesuai.');
+    }
+    _currentUser = user;
+    _accessToken = null;
+    notifyListeners();
+    return AuthResult.success(user);
   }
 
   Uri _authUri(String path) {

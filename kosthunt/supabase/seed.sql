@@ -1,0 +1,3 @@
+-- Production seed is intentionally minimal.
+-- Create real test users through Supabase Auth, then insert app_users rows that
+-- reference auth.users.id for customer, owner, and admin test accounts.

@@ -9,6 +9,8 @@ abstract class KostHuntRepository {
 
   Future<List<SupportMessage>> loadSupportMessages();
 
+  Future<void> saveKost(Kost kost);
+
   Future<void> saveBooking(BookingRequest booking);
 
   Future<void> updateBooking(BookingRequest booking);

@@ -32,24 +32,36 @@ class Kost {
   final String description;
 
   Kost copyWith({
+    String? id,
+    String? name,
+    String? city,
+    String? address,
+    int? price,
+    double? distanceKm,
+    String? imageUrl,
+    List<String>? facilities,
     bool? isVerified,
     bool? isAvailable,
+    String? category,
+    String? ownerName,
+    String? ownerPhone,
+    String? description,
   }) {
     return Kost(
-      id: id,
-      name: name,
-      city: city,
-      address: address,
-      price: price,
-      distanceKm: distanceKm,
-      imageUrl: imageUrl,
-      facilities: facilities,
+      id: id ?? this.id,
+      name: name ?? this.name,
+      city: city ?? this.city,
+      address: address ?? this.address,
+      price: price ?? this.price,
+      distanceKm: distanceKm ?? this.distanceKm,
+      imageUrl: imageUrl ?? this.imageUrl,
+      facilities: facilities ?? this.facilities,
       isVerified: isVerified ?? this.isVerified,
       isAvailable: isAvailable ?? this.isAvailable,
-      category: category,
-      ownerName: ownerName,
-      ownerPhone: ownerPhone,
-      description: description,
+      category: category ?? this.category,
+      ownerName: ownerName ?? this.ownerName,
+      ownerPhone: ownerPhone ?? this.ownerPhone,
+      description: description ?? this.description,
     );
   }
 

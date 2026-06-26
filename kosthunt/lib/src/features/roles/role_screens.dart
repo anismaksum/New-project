@@ -132,6 +132,8 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  String? _error;
+  bool _saving = false;
   String _category = 'Dekat Kampus';
 
   @override
@@ -179,23 +181,66 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
                 );
               }).toList(),
             ),
+            if (_error != null) ...<Widget>[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: KostText.label.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
           ],
         ),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {
-              _showSnack(
-                context,
-                'Draft listing disimpan. Integrasi database bisa dipasang tahap berikutnya.',
-              );
-            },
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Simpan Draft'),
+            onPressed: _saving ? null : _saveDraft,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: Text(_saving ? 'Menyimpan' : 'Simpan Draft'),
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _saveDraft() async {
+    final String name = _nameController.text.trim();
+    final String address = _addressController.text.trim();
+    final int? price = int.tryParse(
+      _priceController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+    );
+    if (name.isEmpty || address.isEmpty || price == null || price <= 0) {
+      setState(() {
+        _error = 'Nama, alamat, dan harga valid wajib diisi.';
+      });
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final Kost draft = await KostHuntStore.instance.createKostDraft(
+      name: name,
+      price: price,
+      address: address,
+      category: _category,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _saving = false;
+    });
+    _showSnack(context, '${draft.name} disimpan sebagai draft listing.');
+    Navigator.pushReplacementNamed(context, AppRoutes.ownerListings);
   }
 }
 

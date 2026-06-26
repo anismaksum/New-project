@@ -33,6 +33,16 @@ class LocalKostHuntRepository implements KostHuntRepository {
   }
 
   @override
+  Future<void> saveKost(Kost kost) async {
+    final int index = _kosts.indexWhere((Kost item) => item.id == kost.id);
+    if (index == -1) {
+      _kosts.insert(0, kost);
+      return;
+    }
+    _kosts[index] = kost;
+  }
+
+  @override
   Future<void> saveBooking(BookingRequest booking) async {
     _bookings.insert(0, booking);
   }

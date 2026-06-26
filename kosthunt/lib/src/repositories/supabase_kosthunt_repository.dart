@@ -107,6 +107,17 @@ class SupabaseKostHuntRepository implements KostHuntRepository {
   }
 
   @override
+  Future<void> saveKost(Kost kost) async {
+    await _request(
+      method: 'POST',
+      table: 'kosts',
+      query: 'on_conflict=id',
+      body: kost.toDatabase(),
+      prefer: 'resolution=merge-duplicates,return=minimal',
+    );
+  }
+
+  @override
   Future<void> saveBooking(BookingRequest booking) async {
     await _request(
       method: 'POST',
