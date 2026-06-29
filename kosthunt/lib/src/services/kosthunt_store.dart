@@ -48,6 +48,7 @@ class KostHuntStore extends ChangeNotifier {
   bool _refreshInFlight = false;
   int _bookingCounter = 1003;
   int _messageCounter = 1001;
+  int _kostCounter = 1;
 
   List<Kost> get kosts => List<Kost>.unmodifiable(_kosts);
 
@@ -478,6 +479,14 @@ class KostHuntStore extends ChangeNotifier {
     final String normalizedName = user.name.trim().toLowerCase();
     return kost.ownerPhone.trim() == normalizedPhone ||
         kost.ownerName.trim().toLowerCase() == normalizedName;
+  }
+
+  String _cityFromAddress(String address) {
+    final parts = address.split(',');
+    if (parts.length >= 2) {
+      return parts[parts.length - 2].trim();
+    }
+    return address.trim();
   }
 
   String _createListingId(String name) {
