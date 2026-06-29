@@ -4,11 +4,20 @@ Database menjadi sumber utama untuk listing kost, booking, chat booking, favorit
 
 ## Urutan Setup
 
-1. Buat project Supabase.
-2. Buka SQL Editor.
-3. Jalankan `schema.sql`.
-4. Jalankan `seed.sql` bila ingin mengisi listing contoh yang sama dengan prototype Flutter.
-5. Simpan `Project URL` dan `anon public key` untuk integrasi Flutter berikutnya.
+Opsi yang disarankan sekarang adalah memakai Supabase CLI untuk project cloud.
+
+1. Link repo ini ke project Supabase:
+   `supabase link --project-ref mcigudrnsshfgpaecfeg`
+2. Push schema dari migration:
+   `supabase db push`
+3. Isi data contoh:
+   `supabase db push --include-seed`
+4. Buat akun email/password di Supabase Authentication.
+5. Jalankan `auth_profiles.sql` di SQL Editor setelah akun Auth tersedia.
+6. Simpan `Project URL` dan `anon public key` untuk integrasi Flutter berikutnya.
+
+Kalau CLI lokal belum siap, `schema.sql` dan `seed.sql` masih bisa dijalankan
+manual di SQL Editor dengan urutan schema lebih dulu, lalu seed.
 
 ## Tabel Utama
 

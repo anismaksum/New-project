@@ -7,6 +7,7 @@ owner, serta admin.
 
 ## Status Saat Ini
 
+<<<<<<< HEAD
 - UI utama sekarang berjalan sebagai production sandbox lokal: auth role, marketplace,
   booking, payment sandbox, chat, support, notification, payout, refund, report,
   dan audit log bisa dicoba tanpa credential eksternal.
@@ -41,6 +42,42 @@ flutter pub get
 Jalur production memakai migration, bukan copy-paste SQL Editor.
 
 Struktur utama:
+=======
+Fondasi database memakai Supabase PostgreSQL. Repo ini sekarang sudah punya
+layout Supabase CLI berikut:
+
+```text
+supabase/config.toml
+supabase/migrations/20260626001725_initial_schema.sql
+supabase/seed.sql
+database/supabase/auth_profiles.sql
+```
+
+Alur setup tanpa Docker:
+
+1. Login dan link project Supabase Cloud.
+2. Jalankan `supabase db push` untuk schema.
+3. Jalankan `supabase db push --include-seed` jika ingin data contoh.
+4. Buat user email/password di Supabase Authentication.
+5. Jalankan `database/supabase/auth_profiles.sql` di SQL Editor untuk memberi
+   role `customer`, `owner`, dan `admin`.
+6. Simpan `Project URL` dan `anon public key`.
+
+Command yang dipakai:
+
+```powershell
+cd "C:\Users\ASUS\OneDrive\Documents\New project\kosthunt"
+supabase link --project-ref mcigudrnsshfgpaecfeg
+supabase db push
+supabase db push --include-seed
+```
+
+Kalau tidak memakai Docker lokal, abaikan `supabase status` dan `supabase start`.
+
+Untuk saat ini aplikasi masih memakai `LocalKostHuntRepository`, jadi app tetap
+berjalan tanpa kredensial Supabase. Layer repository sudah disiapkan agar tahap
+berikutnya bisa mengaktifkan Supabase tanpa membongkar UI.
+>>>>>>> main
 
 ```text
 supabase/

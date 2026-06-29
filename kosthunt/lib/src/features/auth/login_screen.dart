@@ -88,6 +88,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : const Icon(Icons.login_rounded),
                             label: Text(_loading ? 'Memproses' : 'Sign In'),
                           ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: _loading
+                                ? null
+                                : () => Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.register,
+                                    ),
+                            child: const Text('Belum punya akun? Daftar'),
+                          ),
                         ],
                       ),
                     ),
@@ -169,7 +179,11 @@ class _LoginBrand extends StatelessWidget {
         const Text('KostHunt', style: KostText.display),
         const SizedBox(height: 6),
         const Text(
+<<<<<<< HEAD
           'Sign in memakai akun demo atau Supabase untuk membuka akses sesuai role.',
+=======
+          'Sign in memakai akun Supabase untuk membuka akses customer, owner, atau admin.',
+>>>>>>> main
           style: KostText.body,
         ),
         const SizedBox(height: 10),

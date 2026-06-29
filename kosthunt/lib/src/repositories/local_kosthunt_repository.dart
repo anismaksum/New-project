@@ -23,6 +23,23 @@ class LocalKostHuntRepository implements KostHuntRepository {
   }
 
   @override
+  Future<Kost> createKost(Kost kost) async {
+    _kosts.insert(0, kost);
+    return kost;
+  }
+
+  @override
+  Future<Kost> updateKost(Kost kost) async {
+    final int index = _kosts.indexWhere((Kost item) => item.id == kost.id);
+    if (index == -1) {
+      _kosts.insert(0, kost);
+      return kost;
+    }
+    _kosts[index] = kost;
+    return kost;
+  }
+
+  @override
   Future<List<BookingRequest>> loadBookings() async {
     return List<BookingRequest>.unmodifiable(_bookings);
   }

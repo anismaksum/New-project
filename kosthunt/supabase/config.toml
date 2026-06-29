@@ -1,5 +1,6 @@
 project_id = "kosthunt"
 
+<<<<<<< HEAD
 [api]
 enabled = true
 port = 54321
@@ -35,3 +36,8 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = true
+=======
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+>>>>>>> main
