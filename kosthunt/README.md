@@ -5,23 +5,36 @@ dashboard owner, admin console, dan notifikasi WhatsApp melalui backend lokal.
 
 ## Database
 
-Fondasi database memakai Supabase PostgreSQL. File SQL tersedia di:
+Fondasi database memakai Supabase PostgreSQL. Repo ini sekarang sudah punya
+layout Supabase CLI berikut:
 
 ```text
-database/supabase/schema.sql
-database/supabase/seed.sql
+supabase/config.toml
+supabase/migrations/20260626001725_initial_schema.sql
+supabase/seed.sql
 database/supabase/auth_profiles.sql
 ```
 
-Urutan setup:
+Alur setup tanpa Docker:
 
-1. Buat project di Supabase.
-2. Jalankan `database/supabase/schema.sql` di SQL Editor.
-3. Jalankan `database/supabase/seed.sql` untuk data listing contoh.
+1. Login dan link project Supabase Cloud.
+2. Jalankan `supabase db push` untuk schema.
+3. Jalankan `supabase db push --include-seed` jika ingin data contoh.
 4. Buat user email/password di Supabase Authentication.
-5. Sesuaikan email di `database/supabase/auth_profiles.sql`, lalu jalankan
-   file itu untuk memberi role `customer`, `owner`, dan `admin`.
+5. Jalankan `database/supabase/auth_profiles.sql` di SQL Editor untuk memberi
+   role `customer`, `owner`, dan `admin`.
 6. Simpan `Project URL` dan `anon public key`.
+
+Command yang dipakai:
+
+```powershell
+cd "C:\Users\ASUS\OneDrive\Documents\New project\kosthunt"
+supabase link --project-ref mcigudrnsshfgpaecfeg
+supabase db push
+supabase db push --include-seed
+```
+
+Kalau tidak memakai Docker lokal, abaikan `supabase status` dan `supabase start`.
 
 Untuk saat ini aplikasi masih memakai `LocalKostHuntRepository`, jadi app tetap
 berjalan tanpa kredensial Supabase. Layer repository sudah disiapkan agar tahap

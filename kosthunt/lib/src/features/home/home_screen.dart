@@ -34,7 +34,7 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
   ];
 
   List<Kost> get _visibleKosts {
-    return _store.kosts.where((Kost kost) {
+    return _store.marketplaceKosts.where((Kost kost) {
       final String search = _query.trim().toLowerCase();
       final bool matchesQuery = search.isEmpty ||
           kost.name.toLowerCase().contains(search) ||
@@ -370,13 +370,8 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 8),
           _IconBox(
             icon: Icons.logout_rounded,
-            onTap: () {
-              AuthService.instance.logout();
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.login,
-                (Route<dynamic> route) => false,
-              );
+            onTap: () async {
+              await _logoutToLogin(context);
             },
           ),
         ],
@@ -830,13 +825,8 @@ class _OwnerDashboardPreview extends StatelessWidget {
                       behavior: SnackBarBehavior.floating,
                       action: SnackBarAction(
                         label: 'Login',
-                        onPressed: () {
-                          AuthService.instance.logout();
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            AppRoutes.login,
-                            (Route<dynamic> route) => false,
-                          );
+                        onPressed: () async {
+                          await _logoutToLogin(context);
                         },
                       ),
                     ),
@@ -1001,12 +991,19 @@ class _KostDetailSheet extends StatelessWidget {
                       children: <Widget>[
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              onBook();
-                            },
-                            icon: const Icon(Icons.chat_rounded, size: 19),
-                            label: const Text('WhatsApp'),
+                            onPressed: isAvailable
+                                ? () {
+                                    Navigator.of(context).pop();
+                                    onBook();
+                                  }
+                                : null,
+                            icon: const Icon(
+                              Icons.event_available_rounded,
+                              size: 19,
+                            ),
+                            label: Text(
+                              isAvailable ? 'Ajukan Booking' : 'Tidak Tersedia',
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -1403,18 +1400,25 @@ class _ProfilePage extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
           label: 'Login',
-          onPressed: () {
-            AuthService.instance.logout();
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.login,
-              (Route<dynamic> route) => false,
-            );
+          onPressed: () async {
+            await _logoutToLogin(context);
           },
         ),
       ),
     );
   }
+}
+
+Future<void> _logoutToLogin(BuildContext context) async {
+  await AuthService.instance.logout();
+  if (!context.mounted) {
+    return;
+  }
+  Navigator.pushNamedAndRemoveUntil(
+    context,
+    AppRoutes.login,
+    (Route<dynamic> route) => false,
+  );
 }
 
 class _FavoriteTile extends StatelessWidget {
@@ -1551,9 +1555,7 @@ class _MessageBubble extends StatelessWidget {
               Text(
                 '${message.timeLabel} - ${message.deliveryStatus}',
                 style: KostText.label.copyWith(
-                  color: mine
-                      ? const Color(0xFFC9CEC5)
-                      : KostHuntTheme.muted,
+                  color: mine ? const Color(0xFFC9CEC5) : KostHuntTheme.muted,
                   fontSize: 10,
                 ),
               ),
@@ -1562,8 +1564,7 @@ class _MessageBubble extends StatelessWidget {
                 Text(
                   message.reference,
                   style: KostText.label.copyWith(
-                    color:
-                        mine ? KostHuntTheme.softSage : KostHuntTheme.amber,
+                    color: mine ? KostHuntTheme.softSage : KostHuntTheme.amber,
                     fontSize: 10,
                   ),
                 ),

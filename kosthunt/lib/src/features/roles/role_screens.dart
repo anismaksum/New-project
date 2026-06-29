@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/app_user.dart';
 import '../../models/booking_request.dart';
 import '../../models/kost.dart';
 import '../../routes/app_routes.dart';
@@ -16,8 +17,10 @@ class OwnerDashboardScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: store,
       builder: (BuildContext context, Widget? child) {
-        final int available = store.kosts.where(store.isAvailable).length;
-        final int pending = store.bookings
+        final List<Kost> ownerKosts = store.ownerKosts;
+        final List<BookingRequest> ownerBookings = store.ownerBookings;
+        final int available = ownerKosts.where(store.isAvailable).length;
+        final int pending = ownerBookings
             .where((BookingRequest booking) => booking.status == 'Pending')
             .length;
         return _RoleScaffold(
@@ -28,10 +31,10 @@ class OwnerDashboardScreen extends StatelessWidget {
             _MetricGrid(
               metrics: <_MetricData>[
                 _MetricData(
-                  store.kosts.length.toString().padLeft(2, '0'),
-                  'Listing Aktif',
+                  ownerKosts.length.toString().padLeft(2, '0'),
+                  'Total Listing',
                 ),
-                _MetricData(available.toString().padLeft(2, '0'), 'Tersedia'),
+                _MetricData(available.toString().padLeft(2, '0'), 'Tayang'),
                 _MetricData(pending.toString().padLeft(2, '0'), 'Pending'),
               ],
             ),
@@ -53,20 +56,42 @@ class OwnerDashboardScreen extends StatelessWidget {
               ),
             ),
             const _SectionTitle(title: 'Listing Milikmu'),
-            ...store.kosts.take(3).map((Kost kost) {
-              return _ListingWorkCard(
-                kost: kost,
-                status: store.isAvailable(kost) ? 'Tersedia' : 'Penuh',
-                badge: store.isVerified(kost) ? 'Terverifikasi' : 'Review',
-                actionLabel: store.isAvailable(kost)
-                    ? 'Tandai Penuh'
-                    : 'Tandai Tersedia',
-                onAction: () async {
-                  await store.toggleAvailability(kost);
-                  _showSnack(context, 'Status ${kost.name} diperbarui.');
-                },
-              );
-            }),
+            if (ownerKosts.isEmpty)
+              const _EmptyRoleCard(
+                icon: Icons.home_work_outlined,
+                title: 'Belum ada listing',
+                subtitle:
+                    'Publish kost pertamamu dari menu Tambah Kost supaya langsung muncul di dashboard owner.',
+              )
+            else
+              ...ownerKosts.take(3).map((Kost kost) {
+                return _ListingWorkCard(
+                  kost: kost,
+                  status: store.isAvailable(kost) ? 'Tayang' : 'Disembunyikan',
+                  badge: store.isVerified(kost) ? 'Terverifikasi' : 'Review',
+                  primaryActionLabel: store.isAvailable(kost)
+                      ? 'Pause Listing'
+                      : 'Tampilkan Lagi',
+                  primaryActionIcon: store.isAvailable(kost)
+                      ? Icons.pause_circle_outline_rounded
+                      : Icons.play_circle_outline_rounded,
+                  onPrimaryAction: () async {
+                    final bool wasVisible = store.isAvailable(kost);
+                    await store.toggleAvailability(kost);
+                    _showSnack(
+                      context,
+                      wasVisible
+                          ? '${kost.name} disembunyikan dari marketplace.'
+                          : '${kost.name} tayang lagi di marketplace.',
+                    );
+                  },
+                  secondaryActionLabel: 'Edit',
+                  secondaryActionIcon: Icons.edit_outlined,
+                  onSecondaryAction: () {
+                    _openOwnerListingForm(context, listing: kost);
+                  },
+                );
+              }),
           ],
         );
       },
@@ -83,6 +108,7 @@ class OwnerListingsScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: store,
       builder: (BuildContext context, Widget? child) {
+        final List<Kost> ownerKosts = store.ownerKosts;
         return _RoleScaffold(
           title: 'Listing Owner',
           subtitle: 'Atur harga, status, dan visibilitas kost.',
@@ -91,29 +117,48 @@ class OwnerListingsScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.ownerListingForm,
-                ),
+                onPressed: () => _openOwnerListingForm(context),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Tambah Listing Baru'),
               ),
             ),
             const SizedBox(height: 14),
-            ...store.kosts.map((Kost kost) {
-              return _ListingWorkCard(
-                kost: kost,
-                status: store.isAvailable(kost) ? 'Tersedia' : 'Penuh',
-                badge: store.isVerified(kost) ? 'Terverifikasi' : 'Review',
-                actionLabel: store.isAvailable(kost)
-                    ? 'Tandai Penuh'
-                    : 'Tandai Tersedia',
-                onAction: () async {
-                  await store.toggleAvailability(kost);
-                  _showSnack(context, 'Status kamar berhasil diubah.');
-                },
-              );
-            }),
+            if (ownerKosts.isEmpty)
+              const _EmptyRoleCard(
+                icon: Icons.add_home_work_outlined,
+                title: 'Belum ada listing owner',
+                subtitle:
+                    'Isi form kost baru lalu publish. Listing akan langsung tersimpan ke Supabase dan tampil di aplikasi.',
+              )
+            else
+              ...ownerKosts.map((Kost kost) {
+                return _ListingWorkCard(
+                  kost: kost,
+                  status: store.isAvailable(kost) ? 'Tayang' : 'Disembunyikan',
+                  badge: store.isVerified(kost) ? 'Terverifikasi' : 'Review',
+                  primaryActionLabel: store.isAvailable(kost)
+                      ? 'Pause Listing'
+                      : 'Tampilkan Lagi',
+                  primaryActionIcon: store.isAvailable(kost)
+                      ? Icons.pause_circle_outline_rounded
+                      : Icons.play_circle_outline_rounded,
+                  onPrimaryAction: () async {
+                    final bool wasVisible = store.isAvailable(kost);
+                    await store.toggleAvailability(kost);
+                    _showSnack(
+                      context,
+                      wasVisible
+                          ? 'Listing disembunyikan dari marketplace.'
+                          : 'Listing tayang lagi di marketplace.',
+                    );
+                  },
+                  secondaryActionLabel: 'Edit Listing',
+                  secondaryActionIcon: Icons.edit_outlined,
+                  onSecondaryAction: () {
+                    _openOwnerListingForm(context, listing: kost);
+                  },
+                );
+              }),
           ],
         );
       },
@@ -122,7 +167,12 @@ class OwnerListingsScreen extends StatelessWidget {
 }
 
 class OwnerListingFormScreen extends StatefulWidget {
-  const OwnerListingFormScreen({super.key});
+  const OwnerListingFormScreen({
+    super.key,
+    this.initialKost,
+  });
+
+  final Kost? initialKost;
 
   @override
   State<OwnerListingFormScreen> createState() => _OwnerListingFormScreenState();
@@ -130,34 +180,100 @@ class OwnerListingFormScreen extends StatefulWidget {
 
 class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _distanceController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
+  final TextEditingController _facilitiesController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   String _category = 'Dekat Kampus';
+  bool _saving = false;
+  String? _error;
+
+  bool get _isEditing => widget.initialKost != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final Kost? initialKost = widget.initialKost;
+    if (initialKost == null) {
+      _distanceController.text = '1.0';
+      _imageUrlController.text =
+          'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80';
+      _facilitiesController.text = 'WiFi, AC, Parkir';
+      return;
+    }
+    _nameController.text = initialKost.name;
+    _cityController.text = initialKost.city;
+    _priceController.text = initialKost.price.toString();
+    _distanceController.text = initialKost.distanceKm.toStringAsFixed(1);
+    _addressController.text = initialKost.address;
+    _imageUrlController.text = initialKost.imageUrl;
+    _facilitiesController.text = initialKost.facilities.join(', ');
+    _descriptionController.text = initialKost.description;
+    _category = initialKost.category;
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _cityController.dispose();
     _priceController.dispose();
+    _distanceController.dispose();
     _addressController.dispose();
+    _imageUrlController.dispose();
+    _facilitiesController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final AppUser? user = AuthService.instance.currentUser;
     return _RoleScaffold(
-      title: 'Tambah Kost',
-      subtitle: 'Draft listing baru sebelum dikirim untuk verifikasi admin.',
+      title: _isEditing ? 'Edit Kost' : 'Tambah Kost',
+      subtitle: _isEditing
+          ? 'Perbarui detail listing owner dan sinkronkan perubahan ke Supabase.'
+          : 'Listing owner dipublish langsung ke Supabase dan tersinkron ke aplikasi.',
       role: _Role.owner,
       children: <Widget>[
         _FormCard(
           children: <Widget>[
+            Text(
+              '${user?.name ?? 'Owner Kost'} - ${user?.phone ?? '-'}',
+              style: KostText.label.copyWith(color: KostHuntTheme.teal),
+            ),
+            const SizedBox(height: 12),
             _TextInput(controller: _nameController, label: 'Nama kost'),
+            _TextInput(controller: _cityController, label: 'Kota'),
             _TextInput(
               controller: _priceController,
               label: 'Harga per bulan',
               keyboardType: TextInputType.number,
             ),
+            _TextInput(
+              controller: _distanceController,
+              label: 'Jarak ke titik utama (km)',
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
             _TextInput(controller: _addressController, label: 'Alamat'),
+            _TextInput(
+              controller: _imageUrlController,
+              label: 'URL foto utama',
+              keyboardType: TextInputType.url,
+            ),
+            _TextInput(
+              controller: _facilitiesController,
+              label: 'Fasilitas (pisahkan dengan koma)',
+            ),
+            _TextInput(
+              controller: _descriptionController,
+              label: 'Deskripsi singkat',
+              maxLines: 4,
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -179,23 +295,140 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 12),
+            const Text(
+              'Contoh fasilitas: WiFi, AC, Parkir, Kamar Mandi Dalam',
+              style: KostText.muted,
+            ),
+            if (_error != null) ...<Widget>[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: KostText.label.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
           ],
         ),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {
-              _showSnack(
-                context,
-                'Draft listing disimpan. Integrasi database bisa dipasang tahap berikutnya.',
-              );
-            },
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Simpan Draft'),
+            onPressed: _saving ? null : _submit,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    _isEditing ? Icons.save_outlined : Icons.publish_rounded,
+                  ),
+            label: Text(
+              _saving
+                  ? (_isEditing ? 'Menyimpan' : 'Mempublish')
+                  : (_isEditing ? 'Simpan Perubahan' : 'Publish Kost'),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _submit() async {
+    final int? price = int.tryParse(_priceController.text.trim());
+    final double? distance = double.tryParse(_distanceController.text.trim());
+    final List<String> facilities = _facilitiesController.text
+        .split(',')
+        .map((String item) => item.trim())
+        .where((String item) => item.isNotEmpty)
+        .toList();
+
+    if (_nameController.text.trim().isEmpty ||
+        _cityController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty ||
+        _imageUrlController.text.trim().isEmpty ||
+        _descriptionController.text.trim().isEmpty ||
+        price == null ||
+        price <= 0 ||
+        distance == null ||
+        distance < 0 ||
+        facilities.isEmpty) {
+      setState(() {
+        _error =
+            'Lengkapi semua field. Harga harus lebih dari 0 dan fasilitas minimal satu.';
+      });
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final Kost saved = _isEditing
+          ? await KostHuntStore.instance.updateOwnerListing(
+              listing: widget.initialKost!,
+              name: _nameController.text.trim(),
+              city: _cityController.text.trim(),
+              address: _addressController.text.trim(),
+              price: price,
+              distanceKm: distance,
+              imageUrl: _imageUrlController.text.trim(),
+              facilities: facilities,
+              category: _category,
+              description: _descriptionController.text.trim(),
+            )
+          : await KostHuntStore.instance.publishOwnerListing(
+              name: _nameController.text.trim(),
+              city: _cityController.text.trim(),
+              address: _addressController.text.trim(),
+              price: price,
+              distanceKm: distance,
+              imageUrl: _imageUrlController.text.trim(),
+              facilities: facilities,
+              category: _category,
+              description: _descriptionController.text.trim(),
+            );
+      if (!mounted) {
+        return;
+      }
+      final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditing
+                ? '${saved.name} berhasil diperbarui.'
+                : '${saved.name} berhasil dipublish ke marketplace.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on StateError catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = error.message;
+      });
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = _isEditing
+            ? 'Update kost gagal. Cek koneksi internet dan policy Supabase owner.'
+            : 'Publish kost gagal. Cek koneksi internet dan policy Supabase owner.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
   }
 }
 
@@ -208,19 +441,20 @@ class OwnerBookingsScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: store,
       builder: (BuildContext context, Widget? child) {
+        final List<BookingRequest> ownerBookings = store.ownerBookings;
         return _RoleScaffold(
           title: 'Booking Masuk',
           subtitle: 'Konfirmasi pesanan dan kirim update WhatsApp.',
           role: _Role.owner,
           children: <Widget>[
-            if (store.bookings.isEmpty)
+            if (ownerBookings.isEmpty)
               const _EmptyRoleCard(
                 icon: Icons.event_busy_rounded,
                 title: 'Belum ada booking',
                 subtitle: 'Permintaan baru dari customer akan muncul di sini.',
               )
             else
-              ...store.bookings.map((BookingRequest booking) {
+              ...ownerBookings.map((BookingRequest booking) {
                 return _BookingWorkCard(
                   booking: booking,
                   onAccept: booking.status == 'Diterima'
@@ -255,15 +489,17 @@ class OwnerProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppUser? user = AuthService.instance.currentUser;
+    final int listingCount = KostHuntStore.instance.ownerKosts.length;
     return _RoleScaffold(
       title: 'Profil Owner',
       subtitle: 'Akun pemilik, metode kontak, dan preferensi notifikasi.',
       role: _Role.owner,
       children: <Widget>[
-        const _ProfileSummary(
-          name: 'Ardi Properti',
-          role: 'Owner Terverifikasi',
-          phone: '628122220002',
+        _ProfileSummary(
+          name: user?.name ?? 'Owner Kost',
+          role: 'Owner Aktif - $listingCount listing',
+          phone: user?.phone ?? '-',
         ),
         _ActionPanel(
           title: 'WhatsApp Gateway',
@@ -275,13 +511,8 @@ class OwnerProfileScreen extends StatelessWidget {
               Navigator.pushNamed(context, AppRoutes.ownerBookings),
           secondaryLabel: 'Ganti Akun',
           secondaryIcon: Icons.switch_account_rounded,
-          onSecondary: () {
-            AuthService.instance.logout();
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.login,
-              (Route<dynamic> route) => false,
-            );
+          onSecondary: () async {
+            await _logoutToLogin(context);
           },
         ),
       ],
@@ -353,10 +584,12 @@ class AdminListingsScreen extends StatelessWidget {
             final bool verified = store.isVerified(kost);
             return _ListingWorkCard(
               kost: kost,
-              status: store.isAvailable(kost) ? 'Tersedia' : 'Penuh',
+              status: store.isAvailable(kost) ? 'Tayang' : 'Disembunyikan',
               badge: verified ? 'Terverifikasi' : 'Belum verified',
-              actionLabel: verified ? 'Cabut Verifikasi' : 'Verifikasi',
-              onAction: () async {
+              primaryActionLabel: verified ? 'Cabut Verifikasi' : 'Verifikasi',
+              primaryActionIcon:
+                  verified ? Icons.verified_outlined : Icons.verified_rounded,
+              onPrimaryAction: () async {
                 await store.toggleVerified(kost);
                 _showSnack(
                     context, 'Status verifikasi ${kost.name} diperbarui.');
@@ -593,13 +826,8 @@ class _RoleHeader extends StatelessWidget {
         const SizedBox(width: 10),
         _HeaderButton(
           icon: Icons.logout_rounded,
-          onTap: () {
-            AuthService.instance.logout();
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.login,
-              (Route<dynamic> route) => false,
-            );
+          onTap: () async {
+            await _logoutToLogin(context);
           },
         ),
       ],
@@ -803,15 +1031,23 @@ class _ListingWorkCard extends StatelessWidget {
     required this.kost,
     required this.status,
     required this.badge,
-    required this.actionLabel,
-    required this.onAction,
+    required this.primaryActionLabel,
+    required this.primaryActionIcon,
+    required this.onPrimaryAction,
+    this.secondaryActionLabel,
+    this.secondaryActionIcon,
+    this.onSecondaryAction,
   });
 
   final Kost kost;
   final String status;
   final String badge;
-  final String actionLabel;
-  final VoidCallback onAction;
+  final String primaryActionLabel;
+  final IconData primaryActionIcon;
+  final VoidCallback onPrimaryAction;
+  final String? secondaryActionLabel;
+  final IconData? secondaryActionIcon;
+  final VoidCallback? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -871,11 +1107,45 @@ class _ListingWorkCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: KostText.muted,
                   ),
-                  const SizedBox(height: 10),
-                  OutlinedButton(
-                    onPressed: onAction,
-                    child: Text(actionLabel),
+                  const SizedBox(height: 5),
+                  Text(
+                    '${_formatPrice(kost.price)}/bln • ${kost.category}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: KostText.label.copyWith(color: KostHuntTheme.teal),
                   ),
+                  const SizedBox(height: 10),
+                  if (secondaryActionLabel != null &&
+                      secondaryActionIcon != null &&
+                      onSecondaryAction != null)
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: onSecondaryAction,
+                            icon: Icon(secondaryActionIcon, size: 18),
+                            label: Text(secondaryActionLabel!),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: onPrimaryAction,
+                            icon: Icon(primaryActionIcon, size: 18),
+                            label: Text(primaryActionLabel),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: onPrimaryAction,
+                        icon: Icon(primaryActionIcon, size: 18),
+                        label: Text(primaryActionLabel),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1076,11 +1346,13 @@ class _TextInput extends StatelessWidget {
     required this.controller,
     required this.label,
     this.keyboardType,
+    this.maxLines = 1,
   });
 
   final TextEditingController controller;
   final String label;
   final TextInputType? keyboardType;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -1089,6 +1361,7 @@ class _TextInput extends StatelessWidget {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
@@ -1201,4 +1474,39 @@ void _showSnack(BuildContext context, String message) {
       behavior: SnackBarBehavior.floating,
     ),
   );
+}
+
+Future<void> _logoutToLogin(BuildContext context) async {
+  await AuthService.instance.logout();
+  if (!context.mounted) {
+    return;
+  }
+  Navigator.pushNamedAndRemoveUntil(
+    context,
+    AppRoutes.login,
+    (Route<dynamic> route) => false,
+  );
+}
+
+void _openOwnerListingForm(BuildContext context, {Kost? listing}) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (BuildContext context) {
+        return OwnerListingFormScreen(initialKost: listing);
+      },
+    ),
+  );
+}
+
+String _formatPrice(int value) {
+  final String raw = value.toString();
+  final StringBuffer buffer = StringBuffer();
+  for (var i = 0; i < raw.length; i += 1) {
+    final int reverseIndex = raw.length - i;
+    buffer.write(raw[i]);
+    if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+      buffer.write('.');
+    }
+  }
+  return 'Rp$buffer';
 }

@@ -15,7 +15,7 @@ create table if not exists public.app_users (
 
 create table if not exists public.owners (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references public.app_users(id) on delete set null,
+  user_id uuid unique references public.app_users(id) on delete set null,
   display_name text not null,
   phone text not null,
   verified boolean not null default false,
@@ -163,23 +163,123 @@ on public.app_users for select
 to authenticated
 using (auth_user_id = auth.uid());
 
-drop policy if exists "Public can read verified and available kosts" on public.kosts;
-create policy "Public can read verified and available kosts"
+drop policy if exists "Users can create their own profile" on public.app_users;
+create policy "Users can create their own profile"
+on public.app_users for insert
+to authenticated
+with check (
+  auth_user_id = auth.uid()
+  and role in ('customer', 'owner')
+);
+
+drop policy if exists "Owners can read their own profile" on public.owners;
+create policy "Owners can read their own profile"
+on public.owners for select
+to authenticated
+using (
+  user_id in (
+    select id from public.app_users where auth_user_id = auth.uid()
+  )
+);
+
+drop policy if exists "Owners can create their own owner profile" on public.owners;
+create policy "Owners can create their own owner profile"
+on public.owners for insert
+to authenticated
+with check (
+  user_id in (
+    select id
+    from public.app_users
+    where auth_user_id = auth.uid() and role = 'owner'
+  )
+);
+
+drop policy if exists "Owners can read their own kosts" on public.kosts;
+create policy "Owners can read their own kosts"
 on public.kosts for select
-using (is_verified = true and is_available = true);
+to authenticated
+using (
+  owner_id in (
+    select o.id
+    from public.owners o
+    join public.app_users u on u.id = o.user_id
+    where u.auth_user_id = auth.uid() and u.role = 'owner'
+  )
+);
+
+drop policy if exists "Owners can create their own kosts" on public.kosts;
+create policy "Owners can create their own kosts"
+on public.kosts for insert
+to authenticated
+with check (
+  owner_id in (
+    select o.id
+    from public.owners o
+    join public.app_users u on u.id = o.user_id
+    where u.auth_user_id = auth.uid() and u.role = 'owner'
+  )
+);
+
+drop policy if exists "Owners can update their own kosts" on public.kosts;
+create policy "Owners can update their own kosts"
+on public.kosts for update
+to authenticated
+using (
+  owner_id in (
+    select o.id
+    from public.owners o
+    join public.app_users u on u.id = o.user_id
+    where u.auth_user_id = auth.uid() and u.role = 'owner'
+  )
+)
+with check (
+  owner_id in (
+    select o.id
+    from public.owners o
+    join public.app_users u on u.id = o.user_id
+    where u.auth_user_id = auth.uid() and u.role = 'owner'
+  )
+);
+
+drop policy if exists "Admins can read all kosts" on public.kosts;
+create policy "Admins can read all kosts"
+on public.kosts for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.app_users u
+    where u.auth_user_id = auth.uid() and u.role = 'admin'
+  )
+);
+
+drop policy if exists "Admins can update all kosts" on public.kosts;
+create policy "Admins can update all kosts"
+on public.kosts for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.app_users u
+    where u.auth_user_id = auth.uid() and u.role = 'admin'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.app_users u
+    where u.auth_user_id = auth.uid() and u.role = 'admin'
+  )
+);
+
+drop policy if exists "Public can read verified and available kosts" on public.kosts;
+drop policy if exists "Public can read available kosts" on public.kosts;
+create policy "Public can read available kosts"
+on public.kosts for select
+using (is_available = true);
 
 drop policy if exists "Demo can read all kosts" on public.kosts;
-create policy "Demo can read all kosts"
-on public.kosts for select
-to anon
-using (true);
-
 drop policy if exists "Demo can update listing moderation" on public.kosts;
-create policy "Demo can update listing moderation"
-on public.kosts for update
-to anon
-using (true)
-with check (true);
 
 drop policy if exists "Demo can read bookings" on public.bookings;
 create policy "Demo can read bookings"

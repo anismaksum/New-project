@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'features/auth/auth_gate_screen.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/register_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/roles/role_screens.dart';
 import 'models/app_user.dart';
@@ -17,9 +19,11 @@ class KostHuntApp extends StatelessWidget {
       title: 'KostHunt',
       debugShowCheckedModeBanner: false,
       theme: KostHuntTheme.light,
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.authGate,
       routes: <String, WidgetBuilder>{
+        AppRoutes.authGate: (BuildContext context) => const AuthGateScreen(),
         AppRoutes.login: (BuildContext context) => const LoginScreen(),
+        AppRoutes.register: (BuildContext context) => const RegisterScreen(),
         AppRoutes.customerHome: (BuildContext context) =>
             const _RoleGuard(
               role: UserRole.customer,
@@ -96,10 +100,14 @@ class _RoleGuard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (AuthService.instance.canAccess(role)) {
-      return child;
-    }
-
-    return const LoginScreen();
+    return AnimatedBuilder(
+      animation: AuthService.instance,
+      builder: (BuildContext context, Widget? _) {
+        if (AuthService.instance.canAccess(role)) {
+          return child;
+        }
+        return const LoginScreen();
+      },
+    );
   }
 }
