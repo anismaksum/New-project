@@ -34,11 +34,7 @@ class Kost {
   final String description;
 
   Kost copyWith({
-<<<<<<< HEAD
-    String? id,
-=======
     String? ownerId,
->>>>>>> main
     String? name,
     String? city,
     String? address,
@@ -54,12 +50,8 @@ class Kost {
     String? description,
   }) {
     return Kost(
-<<<<<<< HEAD
-      id: id ?? this.id,
-=======
       id: id,
       ownerId: ownerId ?? this.ownerId,
->>>>>>> main
       name: name ?? this.name,
       city: city ?? this.city,
       address: address ?? this.address,

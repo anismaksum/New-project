@@ -103,13 +103,9 @@ class AuthService extends ChangeNotifier {
     }
 
     if (!AppConfig.hasSupabaseConfig) {
-<<<<<<< HEAD
-      return _signInLocalDemo(normalizedEmail, password);
-=======
       return const AuthResult.failure(
         'Supabase Cloud belum dikonfigurasi. Isi URL dan publishable key saat menjalankan app.',
       );
->>>>>>> main
     }
 
     try {

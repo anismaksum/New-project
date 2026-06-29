@@ -1,8 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-<<<<<<< HEAD
-import 'production/production_app.dart';
-=======
 import 'features/auth/auth_gate_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_screen.dart';
@@ -12,16 +9,12 @@ import 'models/app_user.dart';
 import 'routes/app_routes.dart';
 import 'services/auth_service.dart';
 import 'theme/kosthunt_theme.dart';
->>>>>>> main
 
 class KostHuntApp extends StatelessWidget {
   const KostHuntApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-    return const KostHuntProductionApp();
-=======
     return MaterialApp(
       title: 'KostHunt',
       debugShowCheckedModeBanner: false,
@@ -116,6 +109,5 @@ class _RoleGuard extends StatelessWidget {
         return const LoginScreen();
       },
     );
->>>>>>> main
   }
 }

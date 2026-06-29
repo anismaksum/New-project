@@ -179,11 +179,7 @@ class _LoginBrand extends StatelessWidget {
         const Text('KostHunt', style: KostText.display),
         const SizedBox(height: 6),
         const Text(
-<<<<<<< HEAD
-          'Sign in memakai akun demo atau Supabase untuk membuka akses sesuai role.',
-=======
           'Sign in memakai akun Supabase untuk membuka akses customer, owner, atau admin.',
->>>>>>> main
           style: KostText.body,
         ),
         const SizedBox(height: 10),

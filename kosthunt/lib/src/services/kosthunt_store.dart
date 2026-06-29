@@ -44,12 +44,8 @@ class KostHuntStore extends ChangeNotifier {
   final List<SupportMessage> _supportMessages = <SupportMessage>[
     ...supportMessageSeed,
   ];
-<<<<<<< HEAD
-  int _kostCounter = 1001;
-=======
   Timer? _refreshTimer;
   bool _refreshInFlight = false;
->>>>>>> main
   int _bookingCounter = 1003;
   int _messageCounter = 1001;
 
@@ -469,18 +465,6 @@ class KostHuntStore extends ChangeNotifier {
     return '$hour:$minute';
   }
 
-<<<<<<< HEAD
-  String _cityFromAddress(String address) {
-    final List<String> parts = address
-        .split(',')
-        .map((String part) => part.trim())
-        .where((String part) => part.isNotEmpty)
-        .toList();
-    if (parts.length > 1) {
-      return parts.last;
-    }
-    return 'Kota belum diisi';
-=======
   AppUser? get _currentOwnerUser {
     final AppUser? user = AuthService.instance.currentUser;
     if (user == null || user.role != UserRole.owner) {
@@ -524,6 +508,5 @@ class KostHuntStore extends ChangeNotifier {
 
   void _handleAuthChanged() {
     unawaited(refreshRemoteData());
->>>>>>> main
   }
 }

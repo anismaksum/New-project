@@ -184,14 +184,9 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _distanceController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-<<<<<<< HEAD
-  String? _error;
-  bool _saving = false;
-=======
   final TextEditingController _imageUrlController = TextEditingController();
   final TextEditingController _facilitiesController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
->>>>>>> main
   String _category = 'Dekat Kampus';
   bool _saving = false;
   String? _error;
@@ -300,14 +295,11 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
                 );
               }).toList(),
             ),
-<<<<<<< HEAD
-=======
             const SizedBox(height: 12),
             const Text(
               'Contoh fasilitas: WiFi, AC, Parkir, Kamar Mandi Dalam',
               style: KostText.muted,
             ),
->>>>>>> main
             if (_error != null) ...<Widget>[
               const SizedBox(height: 12),
               Text(
@@ -322,21 +314,13 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-<<<<<<< HEAD
-            onPressed: _saving ? null : _saveDraft,
-=======
             onPressed: _saving ? null : _submit,
->>>>>>> main
             icon: _saving
                 ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-<<<<<<< HEAD
-                : const Icon(Icons.save_outlined),
-            label: Text(_saving ? 'Menyimpan' : 'Simpan Draft'),
-=======
                 : Icon(
                     _isEditing ? Icons.save_outlined : Icons.publish_rounded,
                   ),
@@ -345,24 +329,12 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
                   ? (_isEditing ? 'Menyimpan' : 'Mempublish')
                   : (_isEditing ? 'Simpan Perubahan' : 'Publish Kost'),
             ),
->>>>>>> main
           ),
         ),
       ],
     );
   }
 
-<<<<<<< HEAD
-  Future<void> _saveDraft() async {
-    final String name = _nameController.text.trim();
-    final String address = _addressController.text.trim();
-    final int? price = int.tryParse(
-      _priceController.text.replaceAll(RegExp(r'[^0-9]'), ''),
-    );
-    if (name.isEmpty || address.isEmpty || price == null || price <= 0) {
-      setState(() {
-        _error = 'Nama, alamat, dan harga valid wajib diisi.';
-=======
   Future<void> _submit() async {
     final int? price = int.tryParse(_priceController.text.trim());
     final double? distance = double.tryParse(_distanceController.text.trim());
@@ -385,7 +357,6 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
       setState(() {
         _error =
             'Lengkapi semua field. Harga harus lebih dari 0 dan fasilitas minimal satu.';
->>>>>>> main
       });
       return;
     }
@@ -394,22 +365,6 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
       _saving = true;
       _error = null;
     });
-<<<<<<< HEAD
-    final Kost draft = await KostHuntStore.instance.createKostDraft(
-      name: name,
-      price: price,
-      address: address,
-      category: _category,
-    );
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _saving = false;
-    });
-    _showSnack(context, '${draft.name} disimpan sebagai draft listing.');
-    Navigator.pushReplacementNamed(context, AppRoutes.ownerListings);
-=======
 
     try {
       final Kost saved = _isEditing
@@ -474,7 +429,6 @@ class _OwnerListingFormScreenState extends State<OwnerListingFormScreen> {
         });
       }
     }
->>>>>>> main
   }
 }
 
