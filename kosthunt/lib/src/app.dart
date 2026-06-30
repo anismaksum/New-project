@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'features/auth/auth_gate_screen.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/register_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/roles/role_screens.dart';
 import 'models/app_user.dart';
@@ -17,66 +19,68 @@ class KostHuntApp extends StatelessWidget {
       title: 'KostHunt',
       debugShowCheckedModeBanner: false,
       theme: KostHuntTheme.light,
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.authGate,
       routes: <String, WidgetBuilder>{
-        AppRoutes.login: (BuildContext context) => const LoginScreen(),
-        AppRoutes.customerHome: (BuildContext context) =>
-            const _RoleGuard(
+        AppRoutes.authGate: (context) => const AuthGateScreen(),
+        AppRoutes.login: (context) => const LoginScreen(),
+        AppRoutes.register: (context) => const RegisterScreen(),
+
+        AppRoutes.customerHome: (context) => const _RoleGuard(
               role: UserRole.customer,
               child: KostHuntHomeScreen(),
             ),
-        AppRoutes.ownerDashboard: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.ownerDashboard: (context) => const _RoleGuard(
               role: UserRole.owner,
               child: OwnerDashboardScreen(),
             ),
-        AppRoutes.ownerListings: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.ownerListings: (context) => const _RoleGuard(
               role: UserRole.owner,
               child: OwnerListingsScreen(),
             ),
-        AppRoutes.ownerListingForm: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.ownerListingForm: (context) => const _RoleGuard(
               role: UserRole.owner,
               child: OwnerListingFormScreen(),
             ),
-        AppRoutes.ownerBookings: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.ownerBookings: (context) => const _RoleGuard(
               role: UserRole.owner,
               child: OwnerBookingsScreen(),
             ),
-        AppRoutes.ownerProfile: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.ownerProfile: (context) => const _RoleGuard(
               role: UserRole.owner,
               child: OwnerProfileScreen(),
             ),
-        AppRoutes.adminDashboard: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.adminDashboard: (context) => const _RoleGuard(
               role: UserRole.admin,
               child: AdminDashboardScreen(),
             ),
-        AppRoutes.adminListings: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.adminListings: (context) => const _RoleGuard(
               role: UserRole.admin,
               child: AdminListingsScreen(),
             ),
-        AppRoutes.adminOwners: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.adminOwners: (context) => const _RoleGuard(
               role: UserRole.admin,
               child: AdminOwnersScreen(),
             ),
-        AppRoutes.adminUsers: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.adminUsers: (context) => const _RoleGuard(
               role: UserRole.admin,
               child: AdminUsersScreen(),
             ),
-        AppRoutes.adminReports: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.adminReports: (context) => const _RoleGuard(
               role: UserRole.admin,
               child: AdminReportsScreen(),
             ),
-        AppRoutes.adminSettings: (BuildContext context) =>
-            const _RoleGuard(
+
+        AppRoutes.adminSettings: (context) => const _RoleGuard(
               role: UserRole.admin,
               child: AdminSettingsScreen(),
             ),
@@ -96,10 +100,14 @@ class _RoleGuard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (AuthService.instance.canAccess(role)) {
-      return child;
-    }
-
-    return const LoginScreen();
+    return AnimatedBuilder(
+      animation: AuthService.instance,
+      builder: (context, _) {
+        if (AuthService.instance.canAccess(role)) {
+          return child;
+        }
+        return const LoginScreen();
+      },
+    );
   }
 }

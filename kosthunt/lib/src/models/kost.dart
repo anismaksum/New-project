@@ -1,6 +1,7 @@
 class Kost {
   const Kost({
     required this.id,
+    this.ownerId,
     required this.name,
     required this.city,
     required this.address,
@@ -17,6 +18,7 @@ class Kost {
   });
 
   final String id;
+  final String? ownerId;
   final String name;
   final String city;
   final String address;
@@ -32,30 +34,44 @@ class Kost {
   final String description;
 
   Kost copyWith({
+    String? ownerId,
+    String? name,
+    String? city,
+    String? address,
+    int? price,
+    double? distanceKm,
+    String? imageUrl,
+    List<String>? facilities,
     bool? isVerified,
     bool? isAvailable,
+    String? category,
+    String? ownerName,
+    String? ownerPhone,
+    String? description,
   }) {
     return Kost(
       id: id,
-      name: name,
-      city: city,
-      address: address,
-      price: price,
-      distanceKm: distanceKm,
-      imageUrl: imageUrl,
-      facilities: facilities,
+      ownerId: ownerId ?? this.ownerId,
+      name: name ?? this.name,
+      city: city ?? this.city,
+      address: address ?? this.address,
+      price: price ?? this.price,
+      distanceKm: distanceKm ?? this.distanceKm,
+      imageUrl: imageUrl ?? this.imageUrl,
+      facilities: facilities ?? this.facilities,
       isVerified: isVerified ?? this.isVerified,
       isAvailable: isAvailable ?? this.isAvailable,
-      category: category,
-      ownerName: ownerName,
-      ownerPhone: ownerPhone,
-      description: description,
+      category: category ?? this.category,
+      ownerName: ownerName ?? this.ownerName,
+      ownerPhone: ownerPhone ?? this.ownerPhone,
+      description: description ?? this.description,
     );
   }
 
   Map<String, Object?> toDatabase() {
     return <String, Object?>{
       'id': id,
+      'owner_id': ownerId,
       'name': name,
       'city': city,
       'address': address,
@@ -76,6 +92,7 @@ class Kost {
     final Object? facilities = data['facilities'];
     return Kost(
       id: data['id'] as String,
+      ownerId: data['owner_id']?.toString(),
       name: data['name'] as String,
       city: data['city'] as String,
       address: data['address'] as String,

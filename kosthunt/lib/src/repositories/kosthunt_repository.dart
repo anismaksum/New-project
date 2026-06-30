@@ -5,9 +5,15 @@ import '../models/support_message.dart';
 abstract class KostHuntRepository {
   Future<List<Kost>> loadKosts();
 
+  Future<Kost> createKost(Kost kost);
+
+  Future<Kost> updateKost(Kost kost);
+
   Future<List<BookingRequest>> loadBookings();
 
   Future<List<SupportMessage>> loadSupportMessages();
+
+  Future<void> saveKost(Kost kost);
 
   Future<void> saveBooking(BookingRequest booking);
 
