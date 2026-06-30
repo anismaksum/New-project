@@ -17,10 +17,12 @@ class KostHuntHomeScreen extends StatefulWidget {
 
 class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
   late final KostHuntStore _store;
+  late final TextEditingController _searchController;
   int _selectedIndex = 0;
   int _heroIndex = 0;
   String _filter = 'Semua';
   String _query = '';
+  final List<String> _searchHistory = <String>[];
 
   static const List<String> _filters = <String>[
     'Semua',
@@ -64,12 +66,14 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
   void initState() {
     super.initState();
     _store = KostHuntStore.instance;
+    _searchController = TextEditingController();
     _store.addListener(_handleStoreChanged);
   }
 
   @override
   void dispose() {
     _store.removeListener(_handleStoreChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -136,6 +140,8 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
         activeFilter: _filter,
         visibleKosts: _visibleKosts,
         store: _store,
+        searchController: _searchController,
+        searchHistory: _searchHistory,
         onHeroChanged: (int value) {
           setState(() {
             _heroIndex = value;
@@ -151,6 +157,9 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
             _query = value;
           });
         },
+        onSearchSubmitted: _rememberSearch,
+        onHistorySelected: _selectSearchHistory,
+        onClearHistory: _clearSearchHistory,
         onOpenDetail: _openDetail,
         onBook: _bookKost,
       );
@@ -197,6 +206,37 @@ class _KostHuntHomeScreenState extends State<KostHuntHomeScreen> {
         );
       },
     );
+  }
+
+  void _rememberSearch(String value) {
+    final String query = value.trim();
+    if (query.isEmpty) {
+      return;
+    }
+    setState(() {
+      _searchHistory.removeWhere(
+        (String item) => item.toLowerCase() == query.toLowerCase(),
+      );
+      _searchHistory.insert(0, query);
+      if (_searchHistory.length > 6) {
+        _searchHistory.removeRange(6, _searchHistory.length);
+      }
+    });
+  }
+
+  void _selectSearchHistory(String value) {
+    _searchController.text = value;
+    _searchController.selection = TextSelection.collapsed(
+      offset: value.length,
+    );
+    setState(() {
+      _query = value;
+    });
+    _rememberSearch(value);
+  }
+
+  void _clearSearchHistory() {
+    setState(_searchHistory.clear);
   }
 
   Future<void> _bookKost(Kost kost) async {
@@ -249,9 +289,14 @@ class _HomePage extends StatelessWidget {
     required this.activeFilter,
     required this.visibleKosts,
     required this.store,
+    required this.searchController,
+    required this.searchHistory,
     required this.onHeroChanged,
     required this.onFilterChanged,
     required this.onQueryChanged,
+    required this.onSearchSubmitted,
+    required this.onHistorySelected,
+    required this.onClearHistory,
     required this.onOpenDetail,
     required this.onBook,
   });
@@ -261,9 +306,14 @@ class _HomePage extends StatelessWidget {
   final String activeFilter;
   final List<Kost> visibleKosts;
   final KostHuntStore store;
+  final TextEditingController searchController;
+  final List<String> searchHistory;
   final ValueChanged<int> onHeroChanged;
   final ValueChanged<String> onFilterChanged;
   final ValueChanged<String> onQueryChanged;
+  final ValueChanged<String> onSearchSubmitted;
+  final ValueChanged<String> onHistorySelected;
+  final VoidCallback onClearHistory;
   final ValueChanged<Kost> onOpenDetail;
   final ValueChanged<Kost> onBook;
 
@@ -284,8 +334,22 @@ class _HomePage extends StatelessWidget {
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
         SliverToBoxAdapter(
-          child: _SearchField(onChanged: onQueryChanged),
+          child: _SearchField(
+            controller: searchController,
+            onChanged: onQueryChanged,
+            onSubmitted: onSearchSubmitted,
+          ),
         ),
+        if (searchHistory.isNotEmpty)
+          SliverToBoxAdapter(
+            child: _SearchHistoryRail(
+              history: searchHistory,
+              onSelected: onHistorySelected,
+              onClear: onClearHistory,
+            ),
+          )
+        else
+          const SliverToBoxAdapter(child: SizedBox(height: 10)),
         SliverToBoxAdapter(
           child: _FilterRail(
             filters: filters,
@@ -529,10 +593,14 @@ class _HeroShowcase extends StatelessWidget {
 
 class _SearchField extends StatelessWidget {
   const _SearchField({
+    required this.controller,
     required this.onChanged,
+    required this.onSubmitted,
   });
 
+  final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +620,10 @@ class _SearchField extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
+                controller: controller,
                 onChanged: onChanged,
+                onSubmitted: onSubmitted,
+                textInputAction: TextInputAction.search,
                 style: KostText.body,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -566,6 +637,48 @@ class _SearchField extends StatelessWidget {
             const SizedBox(width: 16),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SearchHistoryRail extends StatelessWidget {
+  const _SearchHistoryRail({
+    required this.history,
+    required this.onSelected,
+    required this.onClear,
+  });
+
+  final List<String> history;
+  final ValueChanged<String> onSelected;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+        scrollDirection: Axis.horizontal,
+        itemCount: history.length + 1,
+        separatorBuilder: (BuildContext context, int index) {
+          return const SizedBox(width: 8);
+        },
+        itemBuilder: (BuildContext context, int index) {
+          if (index == history.length) {
+            return ActionChip(
+              avatar: const Icon(Icons.close_rounded, size: 16),
+              label: const Text('Hapus'),
+              onPressed: onClear,
+            );
+          }
+          final String query = history[index];
+          return InputChip(
+            avatar: const Icon(Icons.history_rounded, size: 16),
+            label: Text(query),
+            onPressed: () => onSelected(query),
+          );
+        },
       ),
     );
   }
