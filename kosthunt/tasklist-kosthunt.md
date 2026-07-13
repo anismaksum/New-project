@@ -12,7 +12,7 @@
 - [ ] Fitur lupa password / reset password — **Maksum**
 
 ## 🏠 Fitur Pencarian & List Kos
-- [ ] Desain UI halaman list kos — **Falih**
+- [ ] Desain UI halaman list kos — **Falih*
 - [ ] Desain UI halaman detail kos — **Falih**
 - [ ] Endpoint API list kos & detail kos — **Maksum**
 - [ ] Fitur filter (harga, lokasi, fasilitas, tipe kos) — **Maksum** & **Falih**
