@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
 import '../../services/kosthunt_store.dart';
 import '../../theme/kosthunt_theme.dart';
+import 'profile/edit_profile_screen.dart';
 
 class KostHuntHomeScreen extends StatefulWidget {
   const KostHuntHomeScreen({super.key});
@@ -1428,93 +1429,114 @@ class _ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String name =
-        AuthService.instance.currentUser?.name ?? 'Calon Penghuni';
-    final String phone = AuthService.instance.currentUser?.phone ?? '-';
-    return CustomScrollView(
-      slivers: <Widget>[
-        const SliverToBoxAdapter(child: _TopBar()),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Row(
-                      children: <Widget>[
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: KostHuntTheme.ink,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.person_outline_rounded,
-                            color: KostHuntTheme.surface,
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(name, style: KostText.title),
-                              const SizedBox(height: 5),
-                              Text(
-                                'Customer - $phone',
-                                style: KostText.muted,
+    return AnimatedBuilder(
+      animation: AuthService.instance,
+      builder: (BuildContext context, Widget? child) {
+        final String name =
+            AuthService.instance.currentUser?.name ?? 'Calon Penghuni';
+        final String phone = AuthService.instance.currentUser?.phone ?? '-';
+        return CustomScrollView(
+          slivers: <Widget>[
+            const SliverToBoxAdapter(child: _TopBar()),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Row(
+                          children: <Widget>[
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: KostHuntTheme.ink,
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                            ],
-                          ),
+                              child: const Icon(
+                                Icons.person_outline_rounded,
+                                color: KostHuntTheme.surface,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(name, style: KostText.title),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    'Customer - $phone',
+                                    style: KostText.muted,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const EditProfileScreen(),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Edit Profil'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 18),
+                    const Text('Mode Akses', style: KostText.heading),
+                    const SizedBox(height: 12),
+                    _RoleAccessCard(
+                      icon: Icons.home_work_outlined,
+                      title: 'Customer',
+                      subtitle:
+                          'Cari kost, simpan favorit, dan booking via WhatsApp.',
+                      label: 'Sedang Aktif',
+                      onTap: () {},
+                    ),
+                    _RoleAccessCard(
+                      icon: Icons.dashboard_customize_rounded,
+                      title: 'Owner',
+                      subtitle:
+                          'Kelola listing dan booking masuk dari calon penghuni.',
+                      label: 'Buka Owner',
+                      onTap: () => _showSwitchRoleSnack(
+                        context,
+                        'Sign in memakai akun Supabase dengan role owner untuk membuka dashboard owner.',
+                      ),
+                    ),
+                    _RoleAccessCard(
+                      icon: Icons.admin_panel_settings_outlined,
+                      title: 'Admin',
+                      subtitle:
+                          'Moderasi listing, owner, user, dan laporan platform.',
+                      label: 'Buka Admin',
+                      onTap: () => _showSwitchRoleSnack(
+                        context,
+                        'Sign in memakai akun Supabase dengan role admin untuk membuka admin console.',
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 18),
-                const Text('Mode Akses', style: KostText.heading),
-                const SizedBox(height: 12),
-                _RoleAccessCard(
-                  icon: Icons.home_work_outlined,
-                  title: 'Customer',
-                  subtitle:
-                      'Cari kost, simpan favorit, dan booking via WhatsApp.',
-                  label: 'Sedang Aktif',
-                  onTap: () {},
-                ),
-                _RoleAccessCard(
-                  icon: Icons.dashboard_customize_rounded,
-                  title: 'Owner',
-                  subtitle:
-                      'Kelola listing dan booking masuk dari calon penghuni.',
-                  label: 'Buka Owner',
-                  onTap: () => _showSwitchRoleSnack(
-                    context,
-                    'Sign in memakai akun Supabase dengan role owner untuk membuka dashboard owner.',
-                  ),
-                ),
-                _RoleAccessCard(
-                  icon: Icons.admin_panel_settings_outlined,
-                  title: 'Admin',
-                  subtitle:
-                      'Moderasi listing, owner, user, dan laporan platform.',
-                  label: 'Buka Admin',
-                  onTap: () => _showSwitchRoleSnack(
-                    context,
-                    'Sign in memakai akun Supabase dengan role admin untuk membuka admin console.',
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -2156,4 +2178,4 @@ String _formatPrice(int value) {
     }
   }
   return 'Rp$buffer';
-} 
+}

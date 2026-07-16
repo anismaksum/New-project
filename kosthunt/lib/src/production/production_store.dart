@@ -198,7 +198,8 @@ class ProductionStore extends ChangeNotifier {
     currentUser = user;
     _notify(user.id, 'register_customer', 'Akun customer aktif',
         'Selamat datang di KostHunt.');
-    _notifyAdmins('register_customer', 'Customer baru', '${user.name} mendaftar.');
+    _notifyAdmins(
+        'register_customer', 'Customer baru', '${user.name} mendaftar.');
     _audit(user.id, 'auth.register_customer', 'app_user', user.id, user.email);
     notifyListeners();
     return user;
@@ -309,7 +310,9 @@ class ProductionStore extends ChangeNotifier {
       KostUnit(
         id: _id('unt'),
         kostId: listingId,
-        name: propertyType == PropertyType.kontrakan ? 'Unit Kontrakan' : 'Kamar Regular',
+        name: propertyType == PropertyType.kontrakan
+            ? 'Unit Kontrakan'
+            : 'Kamar Regular',
         monthlyPrice: monthlyPrice,
         depositAmount: 0,
         status: UnitStatus.available,
@@ -317,13 +320,15 @@ class ProductionStore extends ChangeNotifier {
     );
     _notifyAdmins('listing_created', 'Listing baru published',
         '${listing.title} langsung tampil di marketplace.');
-    _audit(ownerUserId, 'listing.create_publish', 'kost', listing.id, listing.title);
+    _audit(ownerUserId, 'listing.create_publish', 'kost', listing.id,
+        listing.title);
     notifyListeners();
     return listing;
   }
 
   void promoteListing(String actorUserId, String listingId) {
-    final int index = listings.indexWhere((KostListing item) => item.id == listingId);
+    final int index =
+        listings.indexWhere((KostListing item) => item.id == listingId);
     if (index == -1) {
       return;
     }
@@ -339,12 +344,15 @@ class ProductionStore extends ChangeNotifier {
     _notify(actorUserId, 'premium_listing', 'Premium listing aktif',
         '${listing.title} diprioritaskan selama 30 hari.');
     _notifyAdmins('premium_listing', 'Premium listing dibeli', listing.title);
-    _audit(actorUserId, 'listing.promote_premium', 'kost', listingId, 'Rp99.000 sandbox');
+    _audit(actorUserId, 'listing.promote_premium', 'kost', listingId,
+        'Rp99.000 sandbox');
     notifyListeners();
   }
 
-  void updateListingStatus(String actorUserId, String listingId, ListingStatus status) {
-    final int index = listings.indexWhere((KostListing item) => item.id == listingId);
+  void updateListingStatus(
+      String actorUserId, String listingId, ListingStatus status) {
+    final int index =
+        listings.indexWhere((KostListing item) => item.id == listingId);
     if (index == -1) {
       return;
     }
@@ -355,7 +363,8 @@ class ProductionStore extends ChangeNotifier {
     if (status == ListingStatus.suspended) {
       _notifyAdmins('listing_suspended', 'Listing disuspend', listing.title);
     }
-    _audit(actorUserId, 'listing.status.${status.name}', 'kost', listingId, listing.title);
+    _audit(actorUserId, 'listing.status.${status.name}', 'kost', listingId,
+        listing.title);
     notifyListeners();
   }
 
@@ -399,14 +408,17 @@ class ProductionStore extends ChangeNotifier {
         'Lanjutkan pembayaran penuh untuk ${listing.title}.');
     _notify(listing.ownerUserId, 'booking_created', 'Booking masuk',
         '${userById(customerUserId)?.name ?? 'Customer'} booking ${listing.title}.');
-    _notifyAdmins('booking_created', 'Booking baru', '${booking.id} menunggu payment.');
-    _audit(customerUserId, 'booking.create', 'booking', booking.id, listing.title);
+    _notifyAdmins(
+        'booking_created', 'Booking baru', '${booking.id} menunggu payment.');
+    _audit(
+        customerUserId, 'booking.create', 'booking', booking.id, listing.title);
     notifyListeners();
     return booking;
   }
 
   Payment createPayment(String actorUserId, String bookingId) {
-    final Booking booking = bookings.firstWhere((Booking item) => item.id == bookingId);
+    final Booking booking =
+        bookings.firstWhere((Booking item) => item.id == bookingId);
     final Payment? existing = _paymentForBooking(bookingId);
     if (existing != null) {
       return existing;
@@ -435,13 +447,15 @@ class ProductionStore extends ChangeNotifier {
     _notify(booking.customerUserId, 'payment_created', 'Payment dibuat',
         'Total ${formatRupiah(payment.amount)} menunggu pembayaran.');
     _notifyAdmins('payment_created', 'Payment dibuat', payment.merchantOrderId);
-    _audit(actorUserId, 'payment.create_duitku', 'payment', payment.id, payment.merchantOrderId);
+    _audit(actorUserId, 'payment.create_duitku', 'payment', payment.id,
+        payment.merchantOrderId);
     notifyListeners();
     return payment;
   }
 
   void simulateDuitkuPaid(String actorUserId, String paymentId) {
-    final int index = payments.indexWhere((Payment item) => item.id == paymentId);
+    final int index =
+        payments.indexWhere((Payment item) => item.id == paymentId);
     if (index == -1) {
       return;
     }
@@ -473,13 +487,15 @@ class ProductionStore extends ChangeNotifier {
     _notify(payment.ownerUserId, 'payment_paid', 'Booking sudah dibayar',
         'Saldo pending bertambah ${formatRupiah(payment.ownerAmount)}.');
     _notifyAdmins('payment_paid', 'Payment paid', payment.merchantOrderId);
-    _audit(actorUserId, 'payment.callback_paid', 'payment', payment.id, payment.merchantOrderId);
+    _audit(actorUserId, 'payment.callback_paid', 'payment', payment.id,
+        payment.merchantOrderId);
     notifyListeners();
   }
 
   void confirmBooking(String actorUserId, String bookingId) {
     _updateBookingStatus(bookingId, BookingStatus.confirmed);
-    final Booking booking = bookings.firstWhere((Booking item) => item.id == bookingId);
+    final Booking booking =
+        bookings.firstWhere((Booking item) => item.id == bookingId);
     _notify(booking.customerUserId, 'booking_confirmed', 'Booking confirmed',
         'Owner sudah mengkonfirmasi booking kamu.');
     _audit(actorUserId, 'booking.confirm', 'booking', bookingId, '');
@@ -488,7 +504,8 @@ class ProductionStore extends ChangeNotifier {
 
   void completeBooking(String actorUserId, String bookingId) {
     _updateBookingStatus(bookingId, BookingStatus.completed);
-    final Booking booking = bookings.firstWhere((Booking item) => item.id == bookingId);
+    final Booking booking =
+        bookings.firstWhere((Booking item) => item.id == bookingId);
     _releaseOwnerBalance(booking.ownerUserId);
     _notify(booking.customerUserId, 'booking_completed', 'Sewa selesai',
         'Kamu sekarang bisa memberi review.');
@@ -496,14 +513,17 @@ class ProductionStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  RefundRequest requestRefund(String actorUserId, String paymentId, String reason) {
-    final Payment payment = payments.firstWhere((Payment item) => item.id == paymentId);
+  RefundRequest requestRefund(
+      String actorUserId, String paymentId, String reason) {
+    final Payment payment =
+        payments.firstWhere((Payment item) => item.id == paymentId);
     final RefundRequest refund = RefundRequest(
       id: _id('ref'),
       bookingId: payment.bookingId,
       paymentId: payment.id,
       amount: payment.amount,
-      reason: reason.trim().isEmpty ? 'Permintaan refund customer' : reason.trim(),
+      reason:
+          reason.trim().isEmpty ? 'Permintaan refund customer' : reason.trim(),
       status: RefundStatus.requested,
       createdAt: DateTime.now(),
     );
@@ -516,18 +536,25 @@ class ProductionStore extends ChangeNotifier {
   }
 
   void processRefund(String actorUserId, String refundId) {
-    final int index = refunds.indexWhere((RefundRequest item) => item.id == refundId);
+    final int index =
+        refunds.indexWhere((RefundRequest item) => item.id == refundId);
     if (index == -1) {
       return;
     }
     refunds[index] = refunds[index].copyWith(status: RefundStatus.processed);
     final RefundRequest refund = refunds[index];
-    final int paymentIndex = payments.indexWhere((Payment item) => item.id == refund.paymentId);
+    final int paymentIndex =
+        payments.indexWhere((Payment item) => item.id == refund.paymentId);
     if (paymentIndex != -1) {
-      payments[paymentIndex] = payments[paymentIndex].copyWith(status: PaymentStatus.refunded);
-      _updateBookingStatus(payments[paymentIndex].bookingId, BookingStatus.refunded);
-      _notify(payments[paymentIndex].customerUserId, 'refund_processed',
-          'Refund diproses', 'Refund ${formatRupiah(refund.amount)} selesai dicatat.');
+      payments[paymentIndex] =
+          payments[paymentIndex].copyWith(status: PaymentStatus.refunded);
+      _updateBookingStatus(
+          payments[paymentIndex].bookingId, BookingStatus.refunded);
+      _notify(
+          payments[paymentIndex].customerUserId,
+          'refund_processed',
+          'Refund diproses',
+          'Refund ${formatRupiah(refund.amount)} selesai dicatat.');
     }
     _audit(actorUserId, 'refund.process', 'refund', refundId, '');
     notifyListeners();
@@ -554,12 +581,14 @@ class ProductionStore extends ChangeNotifier {
     conversations.insert(0, conversation);
     _notify(listing.ownerUserId, 'chat_started', 'Chat baru',
         '${userById(customerUserId)?.name ?? 'Customer'} membuka chat ${listing.title}.');
-    _audit(customerUserId, 'chat.open', 'conversation', conversation.id, listing.title);
+    _audit(customerUserId, 'chat.open', 'conversation', conversation.id,
+        listing.title);
     notifyListeners();
     return conversation;
   }
 
-  void sendChatMessage(String senderUserId, String conversationId, String body) {
+  void sendChatMessage(
+      String senderUserId, String conversationId, String body) {
     final String trimmed = body.trim();
     if (trimmed.isEmpty) {
       throw ArgumentError('Pesan tidak boleh kosong.');
@@ -592,7 +621,8 @@ class ProductionStore extends ChangeNotifier {
     return messages
         .where((ChatMessage item) => item.conversationId == conversationId)
         .toList()
-      ..sort((ChatMessage a, ChatMessage b) => a.createdAt.compareTo(b.createdAt));
+      ..sort(
+          (ChatMessage a, ChatMessage b) => a.createdAt.compareTo(b.createdAt));
   }
 
   SupportThread openSupportThread({
@@ -612,7 +642,8 @@ class ProductionStore extends ChangeNotifier {
     );
     supportThreads.insert(0, thread);
     _notifyAdmins('support_created', 'Support ticket baru', thread.subject);
-    _audit(customerUserId, 'support.open', 'support_thread', thread.id, thread.subject);
+    _audit(customerUserId, 'support.open', 'support_thread', thread.id,
+        thread.subject);
     notifyListeners();
     return thread;
   }
@@ -636,7 +667,8 @@ class ProductionStore extends ChangeNotifier {
     );
     final KhUser? sender = userById(senderUserId);
     if (sender?.role == KhRole.admin) {
-      _notify(thread.customerUserId, 'support_reply', 'Admin membalas', trimmed);
+      _notify(
+          thread.customerUserId, 'support_reply', 'Admin membalas', trimmed);
     } else {
       _notifyAdmins('support_reply', 'Customer membalas support', trimmed);
     }
@@ -644,13 +676,16 @@ class ProductionStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateSupportStatus(String actorUserId, String threadId, SupportStatus status) {
-    final int index = supportThreads.indexWhere((SupportThread item) => item.id == threadId);
+  void updateSupportStatus(
+      String actorUserId, String threadId, SupportStatus status) {
+    final int index =
+        supportThreads.indexWhere((SupportThread item) => item.id == threadId);
     if (index == -1) {
       return;
     }
     supportThreads[index] = supportThreads[index].copyWith(status: status);
-    _audit(actorUserId, 'support.status.${status.name}', 'support_thread', threadId, '');
+    _audit(actorUserId, 'support.status.${status.name}', 'support_thread',
+        threadId, '');
     notifyListeners();
   }
 
@@ -658,7 +693,8 @@ class ProductionStore extends ChangeNotifier {
     return supportMessages
         .where((SupportNote item) => item.threadId == threadId)
         .toList()
-      ..sort((SupportNote a, SupportNote b) => a.createdAt.compareTo(b.createdAt));
+      ..sort(
+          (SupportNote a, SupportNote b) => a.createdAt.compareTo(b.createdAt));
   }
 
   Payout requestPayout(String ownerUserId, int amount) {
@@ -682,7 +718,8 @@ class ProductionStore extends ChangeNotifier {
     );
     _notifyAdmins('payout_requested', 'Payout diminta',
         '${userById(ownerUserId)?.name ?? ownerUserId}: ${formatRupiah(amount)}');
-    _audit(ownerUserId, 'payout.request', 'payout', payout.id, formatRupiah(amount));
+    _audit(ownerUserId, 'payout.request', 'payout', payout.id,
+        formatRupiah(amount));
     notifyListeners();
     return payout;
   }
@@ -715,9 +752,12 @@ class ProductionStore extends ChangeNotifier {
     required int rating,
     required String body,
   }) {
-    final Booking booking = bookings.firstWhere((Booking item) => item.id == bookingId);
-    if (booking.customerUserId != customerUserId || booking.status != BookingStatus.completed) {
-      throw ArgumentError('Review hanya bisa dibuat setelah transaksi selesai.');
+    final Booking booking =
+        bookings.firstWhere((Booking item) => item.id == bookingId);
+    if (booking.customerUserId != customerUserId ||
+        booking.status != BookingStatus.completed) {
+      throw ArgumentError(
+          'Review hanya bisa dibuat setelah transaksi selesai.');
     }
     final Review review = Review(
       id: _id('rev'),
@@ -753,13 +793,15 @@ class ProductionStore extends ChangeNotifier {
     );
     reports.insert(0, report);
     _notifyAdmins('report_created', 'Report baru', report.reason);
-    _audit(reporterUserId, 'report.create', 'report', report.id, report.targetType);
+    _audit(reporterUserId, 'report.create', 'report', report.id,
+        report.targetType);
     notifyListeners();
     return report;
   }
 
   void resolveReport(String actorUserId, String reportId, ReportStatus status) {
-    final int index = reports.indexWhere((ReportItem item) => item.id == reportId);
+    final int index =
+        reports.indexWhere((ReportItem item) => item.id == reportId);
     if (index == -1) {
       return;
     }
@@ -775,7 +817,8 @@ class ProductionStore extends ChangeNotifier {
     if (index == -1) {
       return;
     }
-    notifications[index] = notifications[index].copyWith(readAt: DateTime.now());
+    notifications[index] =
+        notifications[index].copyWith(readAt: DateTime.now());
     notifyListeners();
   }
 
@@ -789,7 +832,8 @@ class ProductionStore extends ChangeNotifier {
   }
 
   void _updateBookingStatus(String bookingId, BookingStatus status) {
-    final int index = bookings.indexWhere((Booking item) => item.id == bookingId);
+    final int index =
+        bookings.indexWhere((Booking item) => item.id == bookingId);
     if (index != -1) {
       bookings[index] = bookings[index].copyWith(status: status);
     }
@@ -797,7 +841,8 @@ class ProductionStore extends ChangeNotifier {
 
   void _addPendingBalance(String ownerUserId, int amount) {
     final OwnerBalance balance = balanceForOwner(ownerUserId);
-    _setBalance(balance.copyWith(pendingAmount: balance.pendingAmount + amount));
+    _setBalance(
+        balance.copyWith(pendingAmount: balance.pendingAmount + amount));
   }
 
   void _releaseOwnerBalance(String ownerUserId) {
@@ -822,7 +867,8 @@ class ProductionStore extends ChangeNotifier {
   }
 
   void _notifyAdmins(String type, String title, String body) {
-    for (final KhUser admin in users.where((KhUser user) => user.role == KhRole.admin)) {
+    for (final KhUser admin
+        in users.where((KhUser user) => user.role == KhRole.admin)) {
       _notify(admin.id, type, title, body);
     }
   }
@@ -869,14 +915,14 @@ class ProductionStore extends ChangeNotifier {
   }
 
   void _seed() {
-    final KhUser customer = KhUser(
+    const KhUser customer = KhUser(
       id: 'usr-customer',
       name: 'Nadia Putri',
       email: 'customer@kosthunt.test',
       phone: '628129990001',
       role: KhRole.customer,
     );
-    final KhUser owner = KhUser(
+    const KhUser owner = KhUser(
       id: 'usr-owner',
       name: 'Ardi Properti',
       email: 'owner@kosthunt.test',
@@ -884,7 +930,7 @@ class ProductionStore extends ChangeNotifier {
       role: KhRole.owner,
       trustLevel: 1,
     );
-    final KhUser admin = KhUser(
+    const KhUser admin = KhUser(
       id: 'usr-admin',
       name: 'Admin KostHunt',
       email: 'admin@kosthunt.test',
@@ -961,12 +1007,20 @@ class ProductionStore extends ChangeNotifier {
       campusDistanceKm: 1.0,
       image:
           'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=1200&q=80',
-      facilities: const <String>['WiFi', 'Parkir', 'Dapur pribadi', 'Ruang tamu'],
+      facilities: const <String>[
+        'WiFi',
+        'Parkir',
+        'Dapur pribadi',
+        'Ruang tamu'
+      ],
     );
 
-    _notify(customer.id, 'welcome', 'Selamat datang', 'Marketplace siap dipakai.');
-    _notify(owner.id, 'welcome', 'Dashboard owner siap', 'Listing bisa langsung publish.');
-    _notify(admin.id, 'welcome', 'Admin console aktif', 'Pantau payment, payout, report, dan support.');
+    _notify(
+        customer.id, 'welcome', 'Selamat datang', 'Marketplace siap dipakai.');
+    _notify(owner.id, 'welcome', 'Dashboard owner siap',
+        'Listing bisa langsung publish.');
+    _notify(admin.id, 'welcome', 'Admin console aktif',
+        'Pantau payment, payout, report, dan support.');
   }
 
   void _seedListing({
@@ -998,18 +1052,25 @@ class ProductionStore extends ChangeNotifier {
         minPrice: price,
         photos: <String>[image],
         facilities: facilities,
-        rules: const <String>['Tidak merokok di kamar', 'Tamu wajib lapor', 'Jam tenang mulai 22.00'],
+        rules: const <String>[
+          'Tidak merokok di kamar',
+          'Tamu wajib lapor',
+          'Jam tenang mulai 22.00'
+        ],
         isPremium: isPremium,
         adCredits: isPremium ? 850 : 0,
         createdAt: DateTime.now().subtract(const Duration(days: 8)),
-        premiumUntil: isPremium ? DateTime.now().add(const Duration(days: 21)) : null,
+        premiumUntil:
+            isPremium ? DateTime.now().add(const Duration(days: 21)) : null,
       ),
     );
     units.addAll(<KostUnit>[
       KostUnit(
         id: 'unt-$id-a',
         kostId: id,
-        name: propertyType == PropertyType.kontrakan ? 'Unit Kontrakan' : 'Kamar Regular',
+        name: propertyType == PropertyType.kontrakan
+            ? 'Unit Kontrakan'
+            : 'Kamar Regular',
         monthlyPrice: price,
         depositAmount: 0,
         status: UnitStatus.available,
@@ -1017,7 +1078,9 @@ class ProductionStore extends ChangeNotifier {
       KostUnit(
         id: 'unt-$id-b',
         kostId: id,
-        name: propertyType == PropertyType.kontrakan ? 'Unit Furnished' : 'Kamar Premium',
+        name: propertyType == PropertyType.kontrakan
+            ? 'Unit Furnished'
+            : 'Kamar Premium',
         monthlyPrice: price + 350000,
         depositAmount: 0,
         status: UnitStatus.available,
