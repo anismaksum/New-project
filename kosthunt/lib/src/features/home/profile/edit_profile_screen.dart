@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../services/auth_service.dart';
-import '../../theme/kosthunt_theme.dart';
+import '../../../services/auth_service.dart';
+import '../../../theme/kosthunt_theme.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -153,14 +153,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() {
       _saving = true;
     });
-    // TODO: hubungkan ke AuthService/Supabase untuk menyimpan perubahan profil.
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    final AuthResult result = await AuthService.instance.updateProfile(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      email: _emailController.text,
+    );
     if (!mounted) {
       return;
     }
     setState(() {
       _saving = false;
     });
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message ?? 'Profil gagal diperbarui.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Profil berhasil diperbarui.'),

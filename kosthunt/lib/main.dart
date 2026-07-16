@@ -10,7 +10,7 @@ Future<void> main() async {
   if (AppConfig.hasSupabaseConfig) {
     await Supabase.initialize(
       url: AppConfig.supabaseUrl,
-      anonKey: AppConfig.supabasePublishableKey,
+      publishableKey: AppConfig.supabasePublishableKey,
     );
   }
   runApp(const ProviderScope(child: KostHuntApp()));

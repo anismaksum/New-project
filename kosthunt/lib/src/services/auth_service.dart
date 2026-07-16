@@ -260,6 +260,123 @@ class AuthService extends ChangeNotifier {
     return Map<String, Object?>.from(rows.first as Map);
   }
 
+  Future<AuthResult> updateProfile({
+    required String name,
+    required String phone,
+    required String email,
+  }) async {
+    final AppUser? user = _currentUser;
+    final String normalizedName = name.trim();
+    final String normalizedPhone = phone.trim();
+    final String normalizedEmail = email.trim().toLowerCase();
+
+    if (user == null) {
+      return const AuthResult.failure('Sesi login tidak ditemukan.');
+    }
+    if (normalizedName.isEmpty ||
+        normalizedPhone.isEmpty ||
+        normalizedEmail.isEmpty) {
+      return const AuthResult.failure('Nama, WhatsApp, dan email wajib diisi.');
+    }
+    if (!normalizedEmail.contains('@')) {
+      return const AuthResult.failure('Format email tidak valid.');
+    }
+
+    final String? token = _accessToken;
+    if (token == null || token.isEmpty) {
+      _currentUser = user.copyWith(
+        name: normalizedName,
+        phone: normalizedPhone,
+        email: normalizedEmail,
+      );
+      notifyListeners();
+      return AuthResult.success(_currentUser!);
+    }
+
+    try {
+      final SupabaseRestResponse authResponse = await _client.request(
+        method: 'PUT',
+        uri: _authUri('/user'),
+        headers: <String, String>{
+          ..._anonHeaders,
+          'Authorization': 'Bearer $token',
+        },
+        body: <String, Object?>{
+          if (normalizedEmail != user.email.trim().toLowerCase())
+            'email': normalizedEmail,
+          'data': <String, Object?>{
+            'full_name': normalizedName,
+            'name': normalizedName,
+            'phone': normalizedPhone,
+            'role': _roleValue(user.role),
+          },
+        },
+      );
+      if (!authResponse.isSuccess) {
+        return AuthResult.failure(
+          _authErrorMessage(
+            authResponse.body,
+            fallback: 'Profil auth belum bisa diperbarui.',
+          ),
+        );
+      }
+
+      Map<String, Object?>? profile;
+      final String profileFilter = user.profileId?.isNotEmpty ?? false
+          ? 'id=eq.${Uri.encodeQueryComponent(user.profileId!)}'
+          : 'auth_user_id=eq.${Uri.encodeQueryComponent(user.authUserId ?? '')}';
+      if (!profileFilter.endsWith('eq.')) {
+        final SupabaseRestResponse profileResponse = await _client.request(
+          method: 'PATCH',
+          uri: _restUri('app_users', '$profileFilter&select=*'),
+          headers: <String, String>{
+            ..._anonHeaders,
+            'Authorization': 'Bearer $token',
+            'Prefer': 'return=representation',
+          },
+          body: <String, Object?>{
+            'full_name': normalizedName,
+            'phone': normalizedPhone,
+          },
+        );
+        if (!profileResponse.isSuccess) {
+          return AuthResult.failure(
+            _profileErrorMessage(
+              profileResponse.body,
+              fallback: 'Profil aplikasi belum bisa disimpan.',
+            ),
+          );
+        }
+        profile = _singleRowFromBody(profileResponse.body);
+      }
+
+      final Map<String, Object?>? loadedAuthUser = await _loadAuthUser();
+      final Map<String, Object?> authUser = loadedAuthUser ??
+          _profileFallbackAuthUser(
+            user: user,
+            email: normalizedEmail,
+            name: normalizedName,
+            phone: normalizedPhone,
+          );
+      profile ??= await _loadUserProfile(authUser['id']?.toString());
+      _currentUser = AppUser.fromSupabaseAuth(
+        authUser: authUser,
+        profile: profile,
+      ).copyWith(
+        name: normalizedName,
+        phone: normalizedPhone,
+        email: normalizedEmail,
+      );
+      await _saveSession();
+      notifyListeners();
+      return AuthResult.success(_currentUser!);
+    } on Object {
+      return const AuthResult.failure(
+        'Profil belum bisa diperbarui. Periksa koneksi dan coba lagi.',
+      );
+    }
+  }
+
   Future<void> logout() async {
     final String? token = _accessToken;
     if (token != null) {
@@ -467,59 +584,6 @@ class AuthService extends ChangeNotifier {
     await _sessionStore.clear();
   }
 
-  AuthResult _signInLocalDemo(String email, String password) {
-    if (password != 'KostHunt212') {
-      return const AuthResult.failure('Email atau password tidak sesuai.');
-    }
-
-    final Map<String, AppUser> users = <String, AppUser>{
-      'customer@kosthunt.test': const AppUser(
-        name: 'Nadia Putri',
-        email: 'customer@kosthunt.test',
-        phone: '628129990001',
-        role: UserRole.customer,
-      ),
-      'owner@kosthunt.test': const AppUser(
-        name: 'Ardi Properti',
-        email: 'owner@kosthunt.test',
-        phone: '628122220002',
-        role: UserRole.owner,
-      ),
-      'admin@kosthunt.test': const AppUser(
-        name: 'Admin KostHunt',
-        email: 'admin@kosthunt.test',
-        phone: '628122220000',
-        role: UserRole.admin,
-      ),
-      'customer@kosthunt.com': const AppUser(
-        name: 'Nadia Putri',
-        email: 'customer@kosthunt.com',
-        phone: '628129990001',
-        role: UserRole.customer,
-      ),
-      'owner@kosthunt.com': const AppUser(
-        name: 'Ardi Properti',
-        email: 'owner@kosthunt.com',
-        phone: '628122220002',
-        role: UserRole.owner,
-      ),
-      'admin@kosthunt.com': const AppUser(
-        name: 'Admin KostHunt',
-        email: 'admin@kosthunt.com',
-        phone: '628122220000',
-        role: UserRole.admin,
-      ),
-    };
-    final AppUser? user = users[email];
-    if (user == null) {
-      return const AuthResult.failure('Email atau password tidak sesuai.');
-    }
-    _currentUser = user;
-    _accessToken = null;
-    notifyListeners();
-    return AuthResult.success(user);
-  }
-
   Uri _authUri(String path) {
     final String normalizedUrl = AppConfig.supabaseUrl.endsWith('/')
         ? AppConfig.supabaseUrl.substring(0, AppConfig.supabaseUrl.length - 1)
@@ -567,6 +631,24 @@ class AuthService extends ChangeNotifier {
       return null;
     }
     return Map<String, Object?>.from(rows.first as Map);
+  }
+
+  Map<String, Object?> _profileFallbackAuthUser({
+    required AppUser user,
+    required String email,
+    required String name,
+    required String phone,
+  }) {
+    return <String, Object?>{
+      'id': user.authUserId,
+      'email': email,
+      'user_metadata': <String, Object?>{
+        'full_name': name,
+        'name': name,
+        'phone': phone,
+        'role': _roleValue(user.role),
+      },
+    };
   }
 
   String _authErrorMessage(String body, {required String fallback}) {

@@ -21,6 +21,24 @@ class AppUser {
   final String phone;
   final UserRole role;
 
+  AppUser copyWith({
+    String? profileId,
+    String? authUserId,
+    String? name,
+    String? email,
+    String? phone,
+    UserRole? role,
+  }) {
+    return AppUser(
+      profileId: profileId ?? this.profileId,
+      authUserId: authUserId ?? this.authUserId,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+    );
+  }
+
   factory AppUser.fromSupabaseAuth({
     required Map<String, Object?> authUser,
     Map<String, Object?>? profile,
